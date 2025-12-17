@@ -7,11 +7,8 @@
 
   <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
-
   <script>
-    tailwind.config = {
-      darkMode: 'class'
-    }
+    tailwind.config = { darkMode: 'class' }
   </script>
 </head>
 
@@ -20,31 +17,30 @@
 <div class="max-w-7xl mx-auto p-4">
 
   <!-- Header -->
-  <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-4">
+  <div class="flex justify-between items-center mb-4">
     <h1 class="text-3xl font-bold">NHL Projections</h1>
-
     <button onclick="toggleTheme()"
-      class="px-4 py-2 rounded bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600">
+      class="px-4 py-2 rounded bg-slate-200 dark:bg-slate-700">
       🌙 / ☀️
     </button>
   </div>
 
   <!-- Controls -->
   <div class="flex flex-wrap gap-3 mb-4">
-    <input id="playerSearch"
-      type="text"
-      placeholder="Search player"
+    <input id="playerSearch" type="text" placeholder="Search player"
       class="px-3 py-2 rounded border dark:border-slate-700 bg-white dark:bg-slate-800">
 
-    <input id="minProj"
-      type="number"
-      step="0.1"
-      placeholder="Min Projection"
+    <input id="minProj" type="number" step="0.1" placeholder="Min Projection"
       class="px-3 py-2 rounded border dark:border-slate-700 bg-white dark:bg-slate-800">
 
     <button onclick="loadData()"
       class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">
       Refresh
+    </button>
+
+    <button onclick="computeBestLineup()"
+      class="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700">
+      🔥 Best Lineup (Top 20 B3)
     </button>
   </div>
 
@@ -55,20 +51,43 @@
 
   <!-- Table -->
   <div class="overflow-x-auto rounded-lg">
-    <table class="w-full border-collapse bg-white dark:bg-slate-800">
+    <table class="w-full bg-white dark:bg-slate-800">
       <thead class="sticky top-0 bg-slate-200 dark:bg-slate-700">
         <tr>
-          <th onclick="sortBy('player')" class="p-2 cursor-pointer">Player</th>
-          <th onclick="sortBy('projection')" class="p-2 cursor-pointer">Projection</th>
-          <th onclick="sortBy('boost')" class="p-2 cursor-pointer">Boost</th>
-          <th onclick="sortBy('b1')" class="p-2 cursor-pointer">B1</th>
-          <th onclick="sortBy('b2')" class="p-2 cursor-pointer">B2</th>
-          <th onclick="sortBy('b3')" class="p-2 cursor-pointer">B3</th>
-          <th onclick="sortBy('b4')" class="p-2 cursor-pointer">B4</th>
-          <th onclick="sortBy('b5')" class="p-2 cursor-pointer">B5</th>
+          <th class="p-2 cursor-pointer" onclick="sortBy('player')">Player</th>
+          <th class="p-2 cursor-pointer" onclick="sortBy('projection')">Projection</th>
+          <th class="p-2 cursor-pointer" onclick="sortBy('boost')">Boost</th>
+          <th class="p-2 cursor-pointer" onclick="sortBy('b1')">B1</th>
+          <th class="p-2 cursor-pointer" onclick="sortBy('b2')">B2</th>
+          <th class="p-2 cursor-pointer" onclick="sortBy('b3')">B3</th>
+          <th class="p-2 cursor-pointer" onclick="sortBy('b4')">B4</th>
+          <th class="p-2 cursor-pointer" onclick="sortBy('b5')">B5</th>
         </tr>
       </thead>
       <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+  <!-- Best Lineup -->
+  <div id="bestLineup" class="mt-8 hidden">
+    <h2 class="text-2xl font-bold mb-2">Best Lineup (5 Players)</h2>
+
+    <table class="w-full bg-white dark:bg-slate-800 rounded-lg">
+      <thead class="bg-slate-200 dark:bg-slate-700">
+        <tr>
+          <th class="p-2 text-left">Player</th>
+          <th class="p-2 text-right">Projection</th>
+          <th class="p-2 text-right">Boost</th>
+          <th class="p-2 text-right">Score</th>
+        </tr>
+      </thead>
+      <tbody id="bestLineupBody"></tbody>
+      <tfoot>
+        <tr class="font-bold border-t dark:border-slate-700">
+          <td class="p-2">Total</td>
+          <td colspan="3" id="bestLineupTotal" class="p-2 text-right"></td>
+        </tr>
+      </tfoot>
     </table>
   </div>
 
@@ -76,31 +95,29 @@
 
 <script>
 const DATA_URL =
-  "https://script.google.com/macros/s/AKfycbxhMK_vKv7SFxoyIGmf8yHmi74-8BX592IE7PrQxR6WSUh8C-7vSom1kt04n0tNT1vE/exec";
+"https://script.google.com/macros/s/AKfycbxhMK_vKv7SFxoyIGmf8yHmi74-8BX592IE7PrQxR6WSUh8C-7vSom1kt04n0tNT1vE/exec";
 
 let allData = [];
 let sortKey = "projection";
 let sortDir = -1;
 
-/* ------------------ DATA ------------------ */
+/* ---------- LOAD ---------- */
 async function loadData() {
   document.getElementById("loading").classList.remove("hidden");
-
   const res = await fetch(DATA_URL);
   allData = await res.json();
-
   document.getElementById("loading").classList.add("hidden");
   render();
 }
 
-/* ------------------ RENDER ------------------ */
+/* ---------- RENDER ---------- */
 function render() {
-  const min = parseFloat(document.getElementById("minProj").value) || -Infinity;
-  const search = document.getElementById("playerSearch").value.toLowerCase();
+  const min = parseFloat(minProj.value) || -Infinity;
+  const search = playerSearch.value.toLowerCase();
 
   let filtered = allData.filter(p =>
     (p.projection || 0) >= min &&
-    (!search || (p.player || "").toLowerCase().includes(search))
+    (!search || p.player.toLowerCase().includes(search))
   );
 
   filtered.sort((a, b) => {
@@ -109,13 +126,11 @@ function render() {
     return (x > y ? 1 : -1) * sortDir;
   });
 
-  const tbody = document.getElementById("tableBody");
-  tbody.innerHTML = "";
-
+  tableBody.innerHTML = "";
   filtered.forEach(p => {
-    tbody.insertAdjacentHTML("beforeend", `
+    tableBody.insertAdjacentHTML("beforeend", `
       <tr class="border-t dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700">
-        <td class="p-2 text-left">${p.player || ""}</td>
+        <td class="p-2">${p.player}</td>
         <td class="p-2 text-right">${(p.projection ?? 0).toFixed(2)}</td>
         <td class="p-2 text-right text-green-400 font-bold">${(p.boost ?? 0).toFixed(1)}</td>
         <td class="p-2 text-right">${(p.b1 ?? 0).toFixed(2)}</td>
@@ -128,26 +143,71 @@ function render() {
   });
 }
 
-/* ------------------ SORT ------------------ */
+/* ---------- SORT ---------- */
 function sortBy(key) {
   if (sortKey === key) sortDir *= -1;
-  else {
-    sortKey = key;
-    sortDir = -1;
-  }
+  else { sortKey = key; sortDir = -1; }
   render();
 }
 
-/* ------------------ THEME ------------------ */
+/* ---------- THEME ---------- */
 function toggleTheme() {
   document.documentElement.classList.toggle("dark");
 }
 
-/* Live search */
-document.getElementById("playerSearch").addEventListener("input", render);
-document.getElementById("minProj").addEventListener("input", render);
+/* ---------- LINEUP OPTIMIZER ---------- */
+function computeBestLineup() {
+  const top20 = [...allData]
+    .filter(p => p.b3 != null)
+    .sort((a, b) => b.b3 - a.b3)
+    .slice(0, 20);
 
-/* Initial load */
+  let bestScore = -Infinity;
+  let bestLineup = [];
+
+  function backtrack(start, lineup) {
+    if (lineup.length === 5) {
+      const score = lineup.reduce(
+        (s, p) => s + p.projection * (1 + p.boost),
+        0
+      );
+      if (score > bestScore) {
+        bestScore = score;
+        bestLineup = [...lineup];
+      }
+      return;
+    }
+    for (let i = start; i < top20.length; i++) {
+      backtrack(i + 1, [...lineup, top20[i]]);
+    }
+  }
+
+  backtrack(0, []);
+  renderBestLineup(bestLineup, bestScore);
+}
+
+/* ---------- RENDER BEST LINEUP ---------- */
+function renderBestLineup(lineup, total) {
+  bestLineupBody.innerHTML = "";
+  lineup.forEach(p => {
+    const score = p.projection * (1 + p.boost);
+    bestLineupBody.insertAdjacentHTML("beforeend", `
+      <tr class="border-t dark:border-slate-700">
+        <td class="p-2">${p.player}</td>
+        <td class="p-2 text-right">${p.projection.toFixed(2)}</td>
+        <td class="p-2 text-right text-green-400">${p.boost.toFixed(1)}</td>
+        <td class="p-2 text-right font-bold">${score.toFixed(2)}</td>
+      </tr>
+    `);
+  });
+  bestLineupTotal.textContent = total.toFixed(2);
+  bestLineup.classList.remove("hidden");
+}
+
+/* Live filters */
+playerSearch.addEventListener("input", render);
+minProj.addEventListener("input", render);
+
 loadData();
 </script>
 
