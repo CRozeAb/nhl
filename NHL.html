@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>NHL Projections + Boost</title>
+
+  <style>
+    body {
+      font-family: Arial;
+      padding: 20px;
+      max-width: 1200px;
+      margin: auto;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    .controls {
+      margin-bottom: 15px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    input, button {
+      padding: 6px 10px;
+      font-size: 14px;
+    }
+
+    #loading {
+      font-weight: bold;
+      display: none;
+      margin-bottom: 10px;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 6px;
+      text-align: right;
+      cursor: pointer;
+    }
+
+    th {
+      background: #eee;
+      user-select: none;
+    }
+
+    td:first-child, th:first-child {
+      text-align: left;
+    }
+
+    .boost {
+      background-color: #e6f4ff;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<h1>NHL Projections + Boost</h1>
+
+<div class="controls">
+  <input id="minProj" type="number" placeholder="Min Projection">
+  <button onclick="loadData()">Refresh</button>
+</div>
+
+<div id="loading">Loading NHL projections…</div>
+
+<table>
+  <thead>
+    <tr>
+      <th onclick="sortBy('player')">Player</th>
+      <th onclick="sortBy('projection')">Projection</th>
+      <th onclick="sortBy('boost')">Boost</th>
+      <th onclick="sortBy('b1')">B1</th>
+      <th onclick="sortBy('b2')">B2</th>
+      <th onclick="sortBy('b3')">B3</th>
+      <th onclick="sortBy('b4')">B4</th>
+      <th onclick="sortBy('b5')">B5</th>
+    </tr>
+  </thead>
+  <tbody id="rows"></tbody>
+</table>
+
+<script>
+const API_URL =
+  "PASTE_YOUR_NHL_APPS_SCRIPT_URL_HERE";
+
+let allData = [];
+let currentSort = { key: "projection", asc: false };
+
+function loadData() {
+  document.getElementById("loading").style.display = "block";
+
+  fetch(API_URL)
+    .then(res => res.json())
+    .then(data => {
+      allData = data;
+      render();
+    })
+    .catch(err => {
+      console.error(err);
+      document.getElementById("rows").innerHTML =
+        "<tr><td colspan='8'>Failed to load NHL data</td></tr>";
+    })
+    .finally(() => {
+      document.getElementById("loading").style.display = "none";
+    });
+}
+
+function render() {
+  const min = Number(document.getElementById("minProj").value || 0);
+  const rows = document.getElementById("rows");
+  rows.innerHTML = "";
+
+  let filtered = allData.filter(p => (p.projection || 0) >= min);
+
+  filtered.sort((a, b) => {
+    let x = a[currentSort.key] ?? "";
+    let y = b[currentSort.key] ?? "";
+
+    if (typeof x === "string") {
+      return currentSort.asc
+        ? x.localeCompare(y)
+        : y.localeCompare(x);
+    }
+    return currentSort.asc ? x - y : y - x;
+  });
+
+  filtered.forEach(p => {
+    rows.insertAdjacentHTML("beforeend", `
+      <tr>
+        <td>${p.player || ""}</td>
+        <td>${(p.projection ?? 0).toFixed(2)}</td>
+        <td class="boost">${(p.boost ?? 0).toFixed(2)}</td>
+        <td>${(p.b1 ?? 0).toFixed(2)}</td>
+        <td>${(p.b2 ?? 0).toFixed(2)}</td>
+        <td>${(p.b3 ?? 0).toFixed(2)}</td>
+        <td>${(p.b4 ?? 0).toFixed(2)}</td>
+        <td>${(p.b5 ?? 0).toFixed(2)}</td>
+      </tr>
+    `);
+  });
+}
+
+function sortBy(key) {
+  if (currentSort.key === key) {
+    currentSort.asc = !currentSort.asc;
+  } else {
+    currentSort.key = key;
+    currentSort.asc = false;
+  }
+  render();
+}
+
+// Initial load
+loadData();
+
+// Auto refresh
+setInterval(loadData, 60000);
+</script>
+
+</body>
+</html>
