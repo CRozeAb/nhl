@@ -49,7 +49,7 @@
     Loading NHL data...
   </div>
 
-  <!-- Table -->
+  <!-- Main Table -->
   <div class="overflow-x-auto rounded-lg">
     <table class="w-full bg-white dark:bg-slate-800">
       <thead class="sticky top-0 bg-slate-200 dark:bg-slate-700">
@@ -70,7 +70,7 @@
 
   <!-- Best Lineup -->
   <div id="bestLineup" class="mt-8 hidden">
-    <h2 class="text-2xl font-bold mb-2">Best Lineup (5 Players)</h2>
+    <h2 class="text-2xl font-bold mb-2">Best Lineup (Optimized)</h2>
 
     <table class="w-full bg-white dark:bg-slate-800 rounded-lg">
       <thead class="bg-slate-200 dark:bg-slate-700">
@@ -78,6 +78,7 @@
           <th class="p-2 text-left">Player</th>
           <th class="p-2 text-right">Projection</th>
           <th class="p-2 text-right">Boost</th>
+          <th class="p-2 text-right">Multiplier</th>
           <th class="p-2 text-right">Score</th>
         </tr>
       </thead>
@@ -85,7 +86,7 @@
       <tfoot>
         <tr class="font-bold border-t dark:border-slate-700">
           <td class="p-2">Total</td>
-          <td colspan="3" id="bestLineupTotal" class="p-2 text-right"></td>
+          <td colspan="4" id="bestLineupTotal" class="p-2 text-right"></td>
         </tr>
       </tfoot>
     </table>
@@ -103,10 +104,10 @@ let sortDir = -1;
 
 /* ---------- LOAD ---------- */
 async function loadData() {
-  document.getElementById("loading").classList.remove("hidden");
+  loading.classList.remove("hidden");
   const res = await fetch(DATA_URL);
   allData = await res.json();
-  document.getElementById("loading").classList.add("hidden");
+  loading.classList.add("hidden");
   render();
 }
 
@@ -155,25 +156,46 @@ function toggleTheme() {
   document.documentElement.classList.toggle("dark");
 }
 
-/* ---------- LINEUP OPTIMIZER ---------- */
+/* ---------- OPTIMIZER ---------- */
 function computeBestLineup() {
+  const multipliers = [2.0, 1.8, 1.6, 1.4, 1.2];
+
   const top20 = [...allData]
     .filter(p => p.b3 != null)
     .sort((a, b) => b.b3 - a.b3)
     .slice(0, 20);
 
   let bestScore = -Infinity;
-  let bestLineup = [];
+  let bestLineup = null;
+  let bestMults = null;
+
+  function permute(arr, l = 0, res = []) {
+    if (l === arr.length) {
+      res.push(arr.slice());
+      return res;
+    }
+    for (let i = l; i < arr.length; i++) {
+      [arr[l], arr[i]] = [arr[i], arr[l]];
+      permute(arr, l + 1, res);
+      [arr[l], arr[i]] = [arr[i], arr[l]];
+    }
+    return res;
+  }
+
+  const multPerms = permute(multipliers.slice());
 
   function backtrack(start, lineup) {
     if (lineup.length === 5) {
-      const score = lineup.reduce(
-        (s, p) => s + p.projection * (1 + p.boost),
-        0
-      );
-      if (score > bestScore) {
-        bestScore = score;
-        bestLineup = [...lineup];
+      for (const m of multPerms) {
+        let score = 0;
+        for (let i = 0; i < 5; i++) {
+          score += lineup[i].projection * (m[i] + lineup[i].boost);
+        }
+        if (score > bestScore) {
+          bestScore = score;
+          bestLineup = [...lineup];
+          bestMults = [...m];
+        }
       }
       return;
     }
@@ -183,19 +205,20 @@ function computeBestLineup() {
   }
 
   backtrack(0, []);
-  renderBestLineup(bestLineup, bestScore);
+  renderBestLineup(bestLineup, bestMults, bestScore);
 }
 
 /* ---------- RENDER BEST LINEUP ---------- */
-function renderBestLineup(lineup, total) {
+function renderBestLineup(lineup, mults, total) {
   bestLineupBody.innerHTML = "";
-  lineup.forEach(p => {
-    const score = p.projection * (1 + p.boost);
+  lineup.forEach((p, i) => {
+    const score = p.projection * (mults[i] + p.boost);
     bestLineupBody.insertAdjacentHTML("beforeend", `
       <tr class="border-t dark:border-slate-700">
         <td class="p-2">${p.player}</td>
         <td class="p-2 text-right">${p.projection.toFixed(2)}</td>
         <td class="p-2 text-right text-green-400">${p.boost.toFixed(1)}</td>
+        <td class="p-2 text-right">${mults[i].toFixed(1)}</td>
         <td class="p-2 text-right font-bold">${score.toFixed(2)}</td>
       </tr>
     `);
