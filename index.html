@@ -38,7 +38,7 @@
   </div>
 
   <!-- Search -->
-  <div class="mb-4">
+  <div id="searchBar" class="mb-4">
     <input id="playerSearch" type="text" placeholder="Search player"
       class="px-3 py-2 rounded border dark:border-slate-700 bg-white dark:bg-slate-800 w-full max-w-sm">
   </div>
@@ -50,22 +50,12 @@
 
   <!-- Projection Table -->
   <div id="projectionView" class="overflow-x-auto rounded-lg">
-    <table class="w-full bg-white dark:bg-slate-800 text-sm">
+    <table class="w-full bg-white dark:bg-slate-800">
       <thead class="sticky top-0 bg-slate-200 dark:bg-slate-700">
         <tr>
           <th class="p-2 cursor-pointer" onclick="sortBy('player')">Player</th>
-          <th class="p-2 cursor-pointer" onclick="sortBy('team')">Team</th>
-
-          <th class="p-2 cursor-pointer" onclick="sortBy('projection')">Proj</th>
+          <th class="p-2 cursor-pointer" onclick="sortBy('projection')">Projection</th>
           <th class="p-2 cursor-pointer" onclick="sortBy('boost')">Boost</th>
-
-          <th class="p-2 cursor-pointer" onclick="sortBy('goals')">G</th>
-          <th class="p-2 cursor-pointer" onclick="sortBy('assists')">A</th>
-          <th class="p-2 cursor-pointer" onclick="sortBy('points')">P</th>
-
-          <th class="p-2 cursor-pointer" onclick="sortBy('shots')">SOG</th>
-          <th class="p-2 cursor-pointer" onclick="sortBy('blocks')">BLK</th>
-
           <th class="p-2 cursor-pointer" onclick="sortBy('b1')">B1</th>
           <th class="p-2 cursor-pointer" onclick="sortBy('b2')">B2</th>
           <th class="p-2 cursor-pointer" onclick="sortBy('b3')">B3</th>
@@ -85,9 +75,9 @@
       <thead class="bg-slate-200 dark:bg-slate-700">
         <tr>
           <th class="p-2 text-left">Player</th>
-          <th class="p-2 text-right">Proj</th>
+          <th class="p-2 text-right">Projection</th>
           <th class="p-2 text-right">Boost</th>
-          <th class="p-2 text-right">Mult</th>
+          <th class="p-2 text-right">Multiplier</th>
           <th class="p-2 text-right">Score</th>
         </tr>
       </thead>
@@ -120,7 +110,7 @@ async function loadData() {
   render();
 }
 
-/* ---------- RENDER ---------- */
+/* ---------- RENDER TABLE ---------- */
 function render() {
   const search = playerSearch.value.toLowerCase();
 
@@ -139,18 +129,8 @@ function render() {
     tableBody.insertAdjacentHTML("beforeend", `
       <tr class="border-t dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700">
         <td class="p-2">${p.player}</td>
-        <td class="p-2 text-center">${p.team}</td>
-
         <td class="p-2 text-right">${p.projection.toFixed(2)}</td>
         <td class="p-2 text-right text-green-400 font-bold">${p.boost.toFixed(1)}</td>
-
-        <td class="p-2 text-right">${p.goals.toFixed(2)}</td>
-        <td class="p-2 text-right">${p.assists.toFixed(2)}</td>
-        <td class="p-2 text-right">${p.points.toFixed(2)}</td>
-
-        <td class="p-2 text-right">${p.shots.toFixed(1)}</td>
-        <td class="p-2 text-right">${p.blocks.toFixed(1)}</td>
-
         <td class="p-2 text-right">${p.b1.toFixed(2)}</td>
         <td class="p-2 text-right">${p.b2.toFixed(2)}</td>
         <td class="p-2 text-right">${p.b3.toFixed(2)}</td>
@@ -190,6 +170,7 @@ function computeBestLineup() {
   const multipliers = [2, 1.8, 1.6, 1.4, 1.2];
 
   const top20 = [...allData]
+    .filter(p => p.b3 != null)
     .sort((a, b) => b.b3 - a.b3)
     .slice(0, 20);
 
@@ -197,8 +178,8 @@ function computeBestLineup() {
   let bestLineup = null;
   let bestMults = null;
 
-  function permute(arr, l, res) {
-    if (l === arr.length) return res.push(arr.slice());
+  function permute(arr, l = 0, res = []) {
+    if (l === arr.length) { res.push(arr.slice()); return; }
     for (let i = l; i < arr.length; i++) {
       [arr[l], arr[i]] = [arr[i], arr[l]];
       permute(arr, l + 1, res);
@@ -233,21 +214,29 @@ function computeBestLineup() {
   renderBestLineup(bestLineup, bestMults, bestScore);
 }
 
-/* ---------- RENDER LINEUP ---------- */
+/* ---------- RENDER LINEUP (SORTED BY MULT DESC) ---------- */
 function renderBestLineup(lineup, mults, total) {
   bestLineupBody.innerHTML = "";
-  lineup.forEach((p, i) => {
-    const score = p.projection * (mults[i] + p.boost);
+
+  const combined = lineup.map((p, i) => ({
+    player: p,
+    mult: mults[i],
+    score: p.projection * (mults[i] + p.boost)
+  }))
+  .sort((a, b) => b.mult - a.mult); // 🔥 NEW
+
+  combined.forEach(x => {
     bestLineupBody.insertAdjacentHTML("beforeend", `
       <tr class="border-t dark:border-slate-700">
-        <td class="p-2">${p.player}</td>
-        <td class="p-2 text-right">${p.projection.toFixed(2)}</td>
-        <td class="p-2 text-right text-green-400">${p.boost.toFixed(1)}</td>
-        <td class="p-2 text-right">${mults[i].toFixed(1)}</td>
-        <td class="p-2 text-right font-bold">${score.toFixed(2)}</td>
+        <td class="p-2">${x.player.player}</td>
+        <td class="p-2 text-right">${x.player.projection.toFixed(2)}</td>
+        <td class="p-2 text-right text-green-400">${x.player.boost.toFixed(1)}</td>
+        <td class="p-2 text-right">${x.mult.toFixed(1)}</td>
+        <td class="p-2 text-right font-bold">${x.score.toFixed(2)}</td>
       </tr>
     `);
   });
+
   bestLineupTotal.textContent = total.toFixed(2);
 }
 
