@@ -67,6 +67,7 @@
 
 <div class="controls">
   <input id="minProj" type="number" placeholder="Min Projection">
+  <input id="playerSearch" type="text" placeholder="Search player">
   <button onclick="loadData()">Refresh</button>
 </div>
 
@@ -89,12 +90,14 @@
 </table>
 
 <script>
-const API_URL =
-  "https://script.google.com/macros/s/AKfycbxhMK_vKv7SFxoyIGmf8yHmi74-8BX592IE7PrQxR6WSUh8C-7vSom1kt04n0tNT1vE/exec";
+/* ================= CONFIG ================= */
+const API_URL = "https://script.google.com/macros/s/AKfycbxhMK_vKv7SFxoyIGmf8yHmi74-8BX592IE7PrQxR6WSUh8C-7vSom1kt04n0tNT1vE/exec";
 
+/* ================= STATE ================= */
 let allData = [];
 let currentSort = { key: "projection", asc: false };
 
+/* ================= FETCH ================= */
 function loadData() {
   document.getElementById("loading").style.display = "block";
 
@@ -114,12 +117,18 @@ function loadData() {
     });
 }
 
+/* ================= RENDER ================= */
 function render() {
   const min = Number(document.getElementById("minProj").value || 0);
-  const rows = document.getElementById("rows");
-  rows.innerHTML = "";
+  const search = document
+    .getElementById("playerSearch")
+    .value
+    .toLowerCase();
 
-  let filtered = allData.filter(p => (p.projection || 0) >= min);
+  let filtered = allData.filter(p =>
+    (p.projection || 0) >= min &&
+    (!search || (p.player || "").toLowerCase().includes(search))
+  );
 
   filtered.sort((a, b) => {
     let x = a[currentSort.key] ?? "";
@@ -133,12 +142,15 @@ function render() {
     return currentSort.asc ? x - y : y - x;
   });
 
+  const rows = document.getElementById("rows");
+  rows.innerHTML = "";
+
   filtered.forEach(p => {
     rows.insertAdjacentHTML("beforeend", `
       <tr>
         <td>${p.player || ""}</td>
         <td>${(p.projection ?? 0).toFixed(2)}</td>
-        <td class="boost">${(p.boost ?? 0).toFixed(2)}</td>
+        <td class="boost">${(p.boost ?? 0).toFixed(1)}</td>
         <td>${(p.b1 ?? 0).toFixed(2)}</td>
         <td>${(p.b2 ?? 0).toFixed(2)}</td>
         <td>${(p.b3 ?? 0).toFixed(2)}</td>
@@ -149,6 +161,7 @@ function render() {
   });
 }
 
+/* ================= SORT ================= */
 function sortBy(key) {
   if (currentSort.key === key) {
     currentSort.asc = !currentSort.asc;
@@ -159,10 +172,13 @@ function sortBy(key) {
   render();
 }
 
-// Initial load
-loadData();
+/* ================= EVENTS ================= */
+document
+  .getElementById("playerSearch")
+  .addEventListener("input", render);
 
-// Auto refresh
+/* ================= INIT ================= */
+loadData();
 setInterval(loadData, 60000);
 </script>
 
