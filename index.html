@@ -19,29 +19,28 @@
   <!-- Header -->
   <div class="flex justify-between items-center mb-4">
     <h1 class="text-3xl font-bold">NHL Projections</h1>
-    <button onclick="toggleTheme()"
-      class="px-4 py-2 rounded bg-slate-200 dark:bg-slate-700">
-      🌙 / ☀️
-    </button>
+    <div class="flex gap-2">
+      <button onclick="showProjections()"
+        class="px-4 py-2 rounded bg-slate-300 dark:bg-slate-700">
+        Projection List
+      </button>
+
+      <button onclick="showLineup()"
+        class="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700">
+        Today’s Lineup
+      </button>
+
+      <button onclick="toggleTheme()"
+        class="px-4 py-2 rounded bg-slate-200 dark:bg-slate-700">
+        🌙 / ☀️
+      </button>
+    </div>
   </div>
 
-  <!-- Controls -->
-  <div class="flex flex-wrap gap-3 mb-4">
+  <!-- Search -->
+  <div id="searchBar" class="mb-4">
     <input id="playerSearch" type="text" placeholder="Search player"
-      class="px-3 py-2 rounded border dark:border-slate-700 bg-white dark:bg-slate-800">
-
-    <input id="minProj" type="number" step="0.1" placeholder="Min Projection"
-      class="px-3 py-2 rounded border dark:border-slate-700 bg-white dark:bg-slate-800">
-
-    <button onclick="loadData()"
-      class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">
-      Refresh
-    </button>
-
-    <button onclick="computeBestLineup()"
-      class="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700">
-      🔥 Best Lineup (Top 20 B3)
-    </button>
+      class="px-3 py-2 rounded border dark:border-slate-700 bg-white dark:bg-slate-800 w-full max-w-sm">
   </div>
 
   <!-- Loading -->
@@ -49,8 +48,8 @@
     Loading NHL data...
   </div>
 
-  <!-- Main Table -->
-  <div class="overflow-x-auto rounded-lg">
+  <!-- Projection Table -->
+  <div id="projectionView" class="overflow-x-auto rounded-lg">
     <table class="w-full bg-white dark:bg-slate-800">
       <thead class="sticky top-0 bg-slate-200 dark:bg-slate-700">
         <tr>
@@ -69,8 +68,8 @@
   </div>
 
   <!-- Best Lineup -->
-  <div id="bestLineup" class="mt-8 hidden">
-    <h2 class="text-2xl font-bold mb-2">Best Lineup (Optimized)</h2>
+  <div id="lineupView" class="mt-8 hidden">
+    <h2 class="text-2xl font-bold mb-2">Today’s Optimal Lineup</h2>
 
     <table class="w-full bg-white dark:bg-slate-800 rounded-lg">
       <thead class="bg-slate-200 dark:bg-slate-700">
@@ -111,14 +110,12 @@ async function loadData() {
   render();
 }
 
-/* ---------- RENDER ---------- */
+/* ---------- RENDER TABLE ---------- */
 function render() {
-  const min = parseFloat(minProj.value) || -Infinity;
   const search = playerSearch.value.toLowerCase();
 
   let filtered = allData.filter(p =>
-    (p.projection || 0) >= min &&
-    (!search || p.player.toLowerCase().includes(search))
+    !search || p.player.toLowerCase().includes(search)
   );
 
   filtered.sort((a, b) => {
@@ -151,6 +148,18 @@ function sortBy(key) {
   render();
 }
 
+/* ---------- VIEWS ---------- */
+function showProjections() {
+  projectionView.classList.remove("hidden");
+  lineupView.classList.add("hidden");
+}
+
+function showLineup() {
+  projectionView.classList.add("hidden");
+  lineupView.classList.remove("hidden");
+  computeBestLineup();
+}
+
 /* ---------- THEME ---------- */
 function toggleTheme() {
   document.documentElement.classList.toggle("dark");
@@ -158,7 +167,7 @@ function toggleTheme() {
 
 /* ---------- OPTIMIZER ---------- */
 function computeBestLineup() {
-  const multipliers = [2.0, 1.8, 1.6, 1.4, 1.2];
+  const multipliers = [2, 1.8, 1.6, 1.4, 1.2];
 
   const top20 = [...allData]
     .filter(p => p.b3 != null)
@@ -170,23 +179,20 @@ function computeBestLineup() {
   let bestMults = null;
 
   function permute(arr, l = 0, res = []) {
-    if (l === arr.length) {
-      res.push(arr.slice());
-      return res;
-    }
+    if (l === arr.length) { res.push(arr.slice()); return; }
     for (let i = l; i < arr.length; i++) {
       [arr[l], arr[i]] = [arr[i], arr[l]];
       permute(arr, l + 1, res);
       [arr[l], arr[i]] = [arr[i], arr[l]];
     }
-    return res;
   }
 
-  const multPerms = permute(multipliers.slice());
+  const perms = [];
+  permute(multipliers.slice(), 0, perms);
 
   function backtrack(start, lineup) {
     if (lineup.length === 5) {
-      for (const m of multPerms) {
+      perms.forEach(m => {
         let score = 0;
         for (let i = 0; i < 5; i++) {
           score += lineup[i].projection * (m[i] + lineup[i].boost);
@@ -196,7 +202,7 @@ function computeBestLineup() {
           bestLineup = [...lineup];
           bestMults = [...m];
         }
-      }
+      });
       return;
     }
     for (let i = start; i < top20.length; i++) {
@@ -208,7 +214,7 @@ function computeBestLineup() {
   renderBestLineup(bestLineup, bestMults, bestScore);
 }
 
-/* ---------- RENDER BEST LINEUP ---------- */
+/* ---------- RENDER LINEUP ---------- */
 function renderBestLineup(lineup, mults, total) {
   bestLineupBody.innerHTML = "";
   lineup.forEach((p, i) => {
@@ -224,13 +230,9 @@ function renderBestLineup(lineup, mults, total) {
     `);
   });
   bestLineupTotal.textContent = total.toFixed(2);
-  bestLineup.classList.remove("hidden");
 }
 
-/* Live filters */
 playerSearch.addEventListener("input", render);
-minProj.addEventListener("input", render);
-
 loadData();
 </script>
 
