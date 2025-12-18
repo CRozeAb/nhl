@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>NHL Projections</title>
+  <title>Sports Projections Hub</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <!-- Tailwind -->
@@ -16,242 +16,227 @@
 
 <div class="max-w-7xl mx-auto p-4">
 
-  <!-- Header -->
-  <div class="flex justify-between items-center mb-4">
-    <h1 class="text-3xl font-bold">NHL Projections</h1>
-    <div class="flex gap-2">
-      <button onclick="showProjections()"
-        class="px-4 py-2 rounded bg-slate-300 dark:bg-slate-700">
-        Projection List
-      </button>
+  <!-- HEADER -->
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-3xl font-bold">Projection Hub</h1>
 
-      <button onclick="showLineup()"
-        class="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700">
-        Today’s Lineup
-      </button>
+    <div class="flex gap-2">
+      <button onclick="setView('nhlProj')" class="menu-btn">NHL Projections</button>
+      <button onclick="setView('nhlDraft')" class="menu-btn">Today’s NHL Draft</button>
+      <button onclick="setView('nbaProj')" class="menu-btn">NBA Projections</button>
+      <button onclick="setView('nbaDraft')" class="menu-btn">Today’s NBA Draft</button>
 
       <button onclick="toggleTheme()"
-        class="px-4 py-2 rounded bg-slate-200 dark:bg-slate-700">
+        class="px-3 py-2 rounded bg-slate-300 dark:bg-slate-700">
         🌙 / ☀️
       </button>
     </div>
   </div>
 
-  <!-- Search -->
-  <div class="mb-4">
-    <input id="playerSearch" type="text" placeholder="Search player"
-      class="px-3 py-2 rounded border dark:border-slate-700 bg-white dark:bg-slate-800 w-full max-w-sm">
-  </div>
-
-  <!-- Loading -->
+  <!-- LOADING -->
   <div id="loading" class="hidden text-center py-6 text-lg">
-    Loading NHL data...
+    Loading data...
   </div>
 
-  <!-- Projection Table -->
-  <div id="projectionView" class="overflow-x-auto rounded-lg">
-    <table class="w-full bg-white dark:bg-slate-800 text-sm">
-      <thead class="sticky top-0 bg-slate-200 dark:bg-slate-700">
-        <tr>
-          <th class="p-2 cursor-pointer" onclick="sortBy('player')">Player</th>
-          <th class="p-2 cursor-pointer" onclick="sortBy('team')">Team</th>
-          <th class="p-2 cursor-pointer" onclick="sortBy('projection')">Proj</th>
-          <th class="p-2 cursor-pointer" onclick="sortBy('boost')">Boost</th>
-          <th class="p-2 cursor-pointer" onclick="sortBy('goals')">G</th>
-          <th class="p-2 cursor-pointer" onclick="sortBy('assists')">A</th>
-          <th class="p-2 cursor-pointer" onclick="sortBy('points')">P</th>
-          <th class="p-2 cursor-pointer" onclick="sortBy('shots')">SOG</th>
-          <th class="p-2 cursor-pointer" onclick="sortBy('blocks')">BLK</th>
-          <th class="p-2 cursor-pointer" onclick="sortBy('b1')">B1</th>
-          <th class="p-2 cursor-pointer" onclick="sortBy('b2')">B2</th>
-          <th class="p-2 cursor-pointer" onclick="sortBy('b3')">B3</th>
-          <th class="p-2 cursor-pointer" onclick="sortBy('b4')">B4</th>
-          <th class="p-2 cursor-pointer" onclick="sortBy('b5')">B5</th>
-        </tr>
-      </thead>
-      <tbody id="tableBody"></tbody>
-    </table>
-  </div>
+  <!-- ================= NHL PROJECTIONS ================= -->
+  <section id="nhlProj" class="view hidden">
+    <h2 class="text-2xl font-bold mb-4">NHL Projections</h2>
+    <div id="nhlTable"></div>
+  </section>
 
-  <!-- Best Lineup -->
-  <div id="lineupView" class="mt-8 hidden">
-    <h2 class="text-2xl font-bold mb-2">Today’s Optimal Lineup</h2>
+  <!-- ================= NHL DRAFT ================= -->
+  <section id="nhlDraft" class="view hidden">
+    <h2 class="text-2xl font-bold mb-4">Today’s NHL Draft</h2>
+    <div id="nhlLineup"></div>
+  </section>
 
-    <table class="w-full bg-white dark:bg-slate-800 rounded-lg">
-      <thead class="bg-slate-200 dark:bg-slate-700">
-        <tr>
-          <th class="p-2 text-left">Player</th>
-          <th class="p-2 text-right">Proj</th>
-          <th class="p-2 text-right">Boost</th>
-          <th class="p-2 text-right">Mult</th>
-          <th class="p-2 text-right">Score</th>
-        </tr>
-      </thead>
-      <tbody id="bestLineupBody"></tbody>
-      <tfoot>
-        <tr class="font-bold border-t dark:border-slate-700">
-          <td class="p-2">Total</td>
-          <td colspan="4" id="bestLineupTotal" class="p-2 text-right"></td>
-        </tr>
-      </tfoot>
-    </table>
-  </div>
+  <!-- ================= NBA PROJECTIONS ================= -->
+  <section id="nbaProj" class="view hidden">
+    <h2 class="text-2xl font-bold mb-4">NBA Projections</h2>
+    <div id="nbaTable"></div>
+  </section>
+
+  <!-- ================= NBA DRAFT ================= -->
+  <section id="nbaDraft" class="view hidden">
+    <h2 class="text-2xl font-bold mb-4">Today’s NBA Draft</h2>
+    <div id="nbaLineup"></div>
+  </section>
 
 </div>
 
 <script>
-const DATA_URL =
-"https://script.google.com/macros/s/AKfycbxCtyEzNDqMQNXhPDufsIKrD-OxgNtXPTNpPrS3NmiLOH2xtt1hkdBei62vTHYxo7AE/exec";
+/* ================= CONFIG ================= */
+const NHL_DATA_URL =
+"https://script.google.com/macros/s/AKfycbxhMK_vKv7SFxoyIGmf8yHmi74-8BX592IE7PrQxR6WSUh8C-7vSom1kt04n0tNT1vE/exec";
 
-let allData = [];
-let sortKey = "projection";
-let sortDir = -1;
+/* Replace later when NBA script is ready */
+const NBA_DATA_URL = "NBA_SCRIPT_URL_HERE";
 
-/* ---------- LOAD ---------- */
+const MULTS = [2, 1.8, 1.6, 1.4, 1.2];
+
+/* ================= STATE ================= */
+let nhlData = [];
+let nbaData = [];
+
+/* ================= MENU ================= */
+function setView(id) {
+  document.querySelectorAll(".view").forEach(v => v.classList.add("hidden"));
+  document.getElementById(id).classList.remove("hidden");
+
+  if (id === "nhlProj") renderTable(nhlData, "nhlTable", true);
+  if (id === "nbaProj") renderTable(nbaData, "nbaTable", false);
+  if (id === "nhlDraft") renderDraft(nhlData, "nhlLineup");
+  if (id === "nbaDraft") renderDraft(nbaData, "nbaLineup");
+}
+
+/* ================= LOAD ================= */
 async function loadData() {
   loading.classList.remove("hidden");
-  const res = await fetch(DATA_URL);
-  allData = await res.json();
+
+  const nhlRes = await fetch(NHL_DATA_URL);
+  nhlData = await nhlRes.json();
+
+  /* NBA optional until ready */
+  try {
+    const nbaRes = await fetch(NBA_DATA_URL);
+    nbaData = await nbaRes.json();
+  } catch {
+    nbaData = [];
+  }
+
   loading.classList.add("hidden");
-  render();
+  setView("nhlProj");
 }
 
-/* ---------- RENDER ---------- */
-function render() {
-  const search = playerSearch.value.toLowerCase();
+/* ================= TABLE ================= */
+function renderTable(data, targetId, isNHL) {
+  if (!data.length) {
+    document.getElementById(targetId).innerHTML =
+      "<p class='text-slate-400'>No data available</p>";
+    return;
+  }
 
-  let filtered = allData.filter(p =>
-    !search || p.player.toLowerCase().includes(search)
-  );
+  const headers = isNHL
+    ? ["Player","Proj","Boost","B1","B2","B3","B4","B5"]
+    : ["Player","Proj","Boost","PB1","PB2","PB3","PB4","PB5"];
 
-  filtered.sort((a, b) => {
-    const x = a[sortKey] ?? 0;
-    const y = b[sortKey] ?? 0;
-    return (x > y ? 1 : -1) * sortDir;
+  let html = `<table class="w-full bg-white dark:bg-slate-800 text-sm rounded-lg">
+    <thead class="bg-slate-200 dark:bg-slate-700">
+      <tr>${headers.map(h=>`<th class="p-2">${h}</th>`).join("")}</tr>
+    </thead><tbody>`;
+
+  data.forEach(p => {
+    html += `<tr class="border-t dark:border-slate-700">
+      <td class="p-2">${p.player}</td>
+      <td class="p-2 text-right">${p.projection.toFixed(2)}</td>
+      <td class="p-2 text-right text-green-400">${p.boost.toFixed(1)}</td>
+      <td class="p-2 text-right">${p.b1.toFixed(2)}</td>
+      <td class="p-2 text-right">${p.b2.toFixed(2)}</td>
+      <td class="p-2 text-right">${p.b3.toFixed(2)}</td>
+      <td class="p-2 text-right">${p.b4.toFixed(2)}</td>
+      <td class="p-2 text-right">${p.b5.toFixed(2)}</td>
+    </tr>`;
   });
 
-  tableBody.innerHTML = "";
-  filtered.forEach(p => {
-    tableBody.insertAdjacentHTML("beforeend", `
-      <tr class="border-t dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700">
-        <td class="p-2">${p.player}</td>
-        <td class="p-2 text-center">${p.team}</td>
-        <td class="p-2 text-right">${p.projection.toFixed(2)}</td>
-        <td class="p-2 text-right text-green-400 font-bold">${p.boost.toFixed(1)}</td>
-        <td class="p-2 text-right">${p.goals.toFixed(2)}</td>
-        <td class="p-2 text-right">${p.assists.toFixed(2)}</td>
-        <td class="p-2 text-right">${p.points.toFixed(2)}</td>
-        <td class="p-2 text-right">${p.shots.toFixed(1)}</td>
-        <td class="p-2 text-right">${p.blocks.toFixed(1)}</td>
-        <td class="p-2 text-right">${p.b1.toFixed(2)}</td>
-        <td class="p-2 text-right">${p.b2.toFixed(2)}</td>
-        <td class="p-2 text-right">${p.b3.toFixed(2)}</td>
-        <td class="p-2 text-right">${p.b4.toFixed(2)}</td>
-        <td class="p-2 text-right">${p.b5.toFixed(2)}</td>
-      </tr>
-    `);
-  });
+  html += "</tbody></table>";
+  document.getElementById(targetId).innerHTML = html;
 }
 
-/* ---------- SORT ---------- */
-function sortBy(key) {
-  if (sortKey === key) sortDir *= -1;
-  else { sortKey = key; sortDir = -1; }
-  render();
-}
+/* ================= OPTIMIZER ================= */
+function renderDraft(data, targetId) {
+  if (!data.length) {
+    document.getElementById(targetId).innerHTML =
+      "<p class='text-slate-400'>No data available</p>";
+    return;
+  }
 
-/* ---------- VIEWS ---------- */
-function showProjections() {
-  projectionView.classList.remove("hidden");
-  lineupView.classList.add("hidden");
-}
-
-function showLineup() {
-  projectionView.classList.add("hidden");
-  lineupView.classList.remove("hidden");
-  computeBestLineup();
-}
-
-/* ---------- THEME ---------- */
-function toggleTheme() {
-  document.documentElement.classList.toggle("dark");
-}
-
-/* ---------- OPTIMIZER ---------- */
-function computeBestLineup() {
-  const multipliers = [2, 1.8, 1.6, 1.4, 1.2];
-
-  const top20 = [...allData]
-    .sort((a, b) => b.b3 - a.b3)
-    .slice(0, 20);
+  const top20 = [...data].sort((a,b)=>b.b3-a.b3).slice(0,20);
 
   let bestScore = -Infinity;
-  let bestLineup = null;
-  let bestMults = null;
+  let best = null;
 
   function permute(arr, l, res) {
     if (l === arr.length) return res.push(arr.slice());
-    for (let i = l; i < arr.length; i++) {
-      [arr[l], arr[i]] = [arr[i], arr[l]];
-      permute(arr, l + 1, res);
-      [arr[l], arr[i]] = [arr[i], arr[l]];
+    for (let i=l;i<arr.length;i++){
+      [arr[l],arr[i]]=[arr[i],arr[l]];
+      permute(arr,l+1,res);
+      [arr[l],arr[i]]=[arr[i],arr[l]];
     }
   }
 
   const perms = [];
-  permute(multipliers.slice(), 0, perms);
+  permute(MULTS.slice(),0,perms);
 
   function backtrack(start, lineup) {
     if (lineup.length === 5) {
-      perms.forEach(m => {
-        let score = 0;
-        for (let i = 0; i < 5; i++) {
-          score += lineup[i].projection * (m[i] + lineup[i].boost);
-        }
-        if (score > bestScore) {
-          bestScore = score;
-          bestLineup = [...lineup];
-          bestMults = [...m];
+      perms.forEach(m=>{
+        let score = lineup.reduce((s,p,i)=>s+p.projection*(m[i]+p.boost),0);
+        if (score>bestScore){
+          bestScore=score;
+          best={lineup:[...lineup],mults:[...m]};
         }
       });
       return;
     }
-    for (let i = start; i < top20.length; i++) {
-      backtrack(i + 1, [...lineup, top20[i]]);
+    for (let i=start;i<top20.length;i++){
+      backtrack(i+1,[...lineup,top20[i]]);
     }
   }
 
-  backtrack(0, []);
-  renderBestLineup(bestLineup, bestMults, bestScore);
-}
+  backtrack(0,[]);
 
-/* ---------- RENDER LINEUP (SORTED BY MULT DESC) ---------- */
-function renderBestLineup(lineup, mults, total) {
-  bestLineupBody.innerHTML = "";
-
-  const rows = lineup.map((p, i) => ({
-    player: p,
-    mult: mults[i],
-    score: p.projection * (mults[i] + p.boost)
-  }))
-  .sort((a, b) => b.mult - a.mult);
-
-  rows.forEach(r => {
-    bestLineupBody.insertAdjacentHTML("beforeend", `
-      <tr class="border-t dark:border-slate-700">
-        <td class="p-2">${r.player.player}</td>
-        <td class="p-2 text-right">${r.player.projection.toFixed(2)}</td>
-        <td class="p-2 text-right text-green-400">${r.player.boost.toFixed(1)}</td>
-        <td class="p-2 text-right">${r.mult.toFixed(1)}</td>
-        <td class="p-2 text-right font-bold">${r.score.toFixed(2)}</td>
+  let html = `<table class="w-full bg-white dark:bg-slate-800 rounded-lg">
+    <thead class="bg-slate-200 dark:bg-slate-700">
+      <tr>
+        <th class="p-2">Player</th>
+        <th class="p-2 text-right">Proj</th>
+        <th class="p-2 text-right">Boost</th>
+        <th class="p-2 text-right">Mult</th>
+        <th class="p-2 text-right">Score</th>
       </tr>
-    `);
-  });
+    </thead><tbody>`;
 
-  bestLineupTotal.textContent = total.toFixed(2);
+  let total = 0;
+
+  best.lineup
+    .map((p,i)=>({
+      p,
+      m: best.mults[i],
+      s: p.projection*(best.mults[i]+p.boost)
+    }))
+    .sort((a,b)=>b.m-a.m)
+    .forEach(r=>{
+      total+=r.s;
+      html+=`<tr class="border-t dark:border-slate-700">
+        <td class="p-2">${r.p.player}</td>
+        <td class="p-2 text-right">${r.p.projection.toFixed(2)}</td>
+        <td class="p-2 text-right text-green-400">${r.p.boost.toFixed(1)}</td>
+        <td class="p-2 text-right">${r.m.toFixed(1)}</td>
+        <td class="p-2 text-right font-bold">${r.s.toFixed(2)}</td>
+      </tr>`;
+    });
+
+  html+=`</tbody>
+    <tfoot>
+      <tr class="font-bold border-t dark:border-slate-700">
+        <td class="p-2">Total</td>
+        <td colspan="4" class="p-2 text-right">${total.toFixed(2)}</td>
+      </tr>
+    </tfoot></table>`;
+
+  document.getElementById(targetId).innerHTML = html;
 }
 
-playerSearch.addEventListener("input", render);
+/* ================= THEME ================= */
+function toggleTheme(){
+  document.documentElement.classList.toggle("dark");
+}
+
+/* ================= MENU STYLE ================= */
+document.querySelectorAll(".menu-btn").forEach(b=>{
+  b.className="px-3 py-2 rounded bg-slate-300 dark:bg-slate-700 hover:bg-slate-400";
+});
+
 loadData();
 </script>
 
