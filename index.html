@@ -2,14 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Sports Projections Hub</title>
+  <title>Projection Hub</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = { darkMode: 'class' }
-  </script>
+  <script>tailwind.config = { darkMode: 'class' }</script>
 </head>
 
 <body class="bg-slate-100 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
@@ -19,48 +16,28 @@
   <!-- HEADER -->
   <div class="flex justify-between items-center mb-6">
     <h1 class="text-3xl font-bold">Projection Hub</h1>
-
     <div class="flex gap-2">
-      <button onclick="setView('nhlProj')" class="menu-btn">NHL Projections</button>
-      <button onclick="setView('nhlDraft')" class="menu-btn">Today’s NHL Draft</button>
-      <button onclick="setView('nbaProj')" class="menu-btn">NBA Projections</button>
-      <button onclick="setView('nbaDraft')" class="menu-btn">Today’s NBA Draft</button>
-
-      <button onclick="toggleTheme()"
-        class="px-3 py-2 rounded bg-slate-300 dark:bg-slate-700">
-        🌙 / ☀️
-      </button>
+      <button onclick="setView('nhlProj')" class="menu">NHL Projections</button>
+      <button onclick="setView('nhlDraft')" class="menu">Today’s NHL Draft</button>
+      <button onclick="setView('nbaProj')" class="menu">NBA Projections</button>
+      <button onclick="setView('nbaDraft')" class="menu">Today’s NBA Draft</button>
+      <button onclick="toggleTheme()" class="menu">🌙 / ☀️</button>
     </div>
   </div>
 
-  <!-- LOADING -->
-  <div id="loading" class="hidden text-center py-6 text-lg">
-    Loading data...
-  </div>
+  <div id="loading" class="hidden text-center py-6 text-lg">Loading data…</div>
 
-  <!-- ================= NHL PROJECTIONS ================= -->
-  <section id="nhlProj" class="view hidden">
-    <h2 class="text-2xl font-bold mb-4">NHL Projections</h2>
-    <div id="nhlTable"></div>
-  </section>
+  <!-- NHL PROJECTIONS -->
+  <section id="nhlProj" class="view hidden"></section>
 
-  <!-- ================= NHL DRAFT ================= -->
-  <section id="nhlDraft" class="view hidden">
-    <h2 class="text-2xl font-bold mb-4">Today’s NHL Draft</h2>
-    <div id="nhlLineup"></div>
-  </section>
+  <!-- NHL DRAFT -->
+  <section id="nhlDraft" class="view hidden"></section>
 
-  <!-- ================= NBA PROJECTIONS ================= -->
-  <section id="nbaProj" class="view hidden">
-    <h2 class="text-2xl font-bold mb-4">NBA Projections</h2>
-    <div id="nbaTable"></div>
-  </section>
+  <!-- NBA PROJECTIONS -->
+  <section id="nbaProj" class="view hidden"></section>
 
-  <!-- ================= NBA DRAFT ================= -->
-  <section id="nbaDraft" class="view hidden">
-    <h2 class="text-2xl font-bold mb-4">Today’s NBA Draft</h2>
-    <div id="nbaLineup"></div>
-  </section>
+  <!-- NBA DRAFT -->
+  <section id="nbaDraft" class="view hidden"></section>
 
 </div>
 
@@ -69,37 +46,33 @@
 const NHL_DATA_URL =
 "https://script.google.com/macros/s/AKfycbxhMK_vKv7SFxoyIGmf8yHmi74-8BX592IE7PrQxR6WSUh8C-7vSom1kt04n0tNT1vE/exec";
 
-/* Replace later when NBA script is ready */
-const NBA_DATA_URL = "NBA_SCRIPT_URL_HERE";
+const NBA_DATA_URL = "https://script.google.com/macros/s/AKfycbxHfUmVLhlfp3laeEeEB9GSvr3lHvabZ8kw4lkI-Y9GZlAyUESXPi8zdb-Fswhs6d64/exec";
 
-const MULTS = [2, 1.8, 1.6, 1.4, 1.2];
+const MULTS = [2,1.8,1.6,1.4,1.2];
 
 /* ================= STATE ================= */
 let nhlData = [];
 let nbaData = [];
 
 /* ================= MENU ================= */
-function setView(id) {
-  document.querySelectorAll(".view").forEach(v => v.classList.add("hidden"));
+function setView(id){
+  document.querySelectorAll(".view").forEach(v=>v.classList.add("hidden"));
   document.getElementById(id).classList.remove("hidden");
 
-  if (id === "nhlProj") renderTable(nhlData, "nhlTable", true);
-  if (id === "nbaProj") renderTable(nbaData, "nbaTable", false);
-  if (id === "nhlDraft") renderDraft(nhlData, "nhlLineup");
-  if (id === "nbaDraft") renderDraft(nbaData, "nbaLineup");
+  if(id==="nhlProj") renderNHLTable();
+  if(id==="nhlDraft") renderDraft(nhlData,"nhlDraft");
+  if(id==="nbaProj") renderNBATable();
+  if(id==="nbaDraft") renderDraft(nbaData,"nbaDraft");
 }
 
 /* ================= LOAD ================= */
-async function loadData() {
+async function loadData(){
   loading.classList.remove("hidden");
 
-  const nhlRes = await fetch(NHL_DATA_URL);
-  nhlData = await nhlRes.json();
+  nhlData = await (await fetch(NHL_DATA_URL)).json();
 
-  /* NBA optional until ready */
   try {
-    const nbaRes = await fetch(NBA_DATA_URL);
-    nbaData = await nbaRes.json();
+    nbaData = await (await fetch(NBA_DATA_URL)).json();
   } catch {
     nbaData = [];
   }
@@ -108,25 +81,80 @@ async function loadData() {
   setView("nhlProj");
 }
 
-/* ================= TABLE ================= */
-function renderTable(data, targetId, isNHL) {
-  if (!data.length) {
-    document.getElementById(targetId).innerHTML =
-      "<p class='text-slate-400'>No data available</p>";
+/* ================= NHL TABLE ================= */
+function renderNHLTable(){
+  let html = `
+  <h2 class="text-2xl font-bold mb-4">NHL Projections</h2>
+  <table class="w-full bg-white dark:bg-slate-800 text-sm rounded-lg">
+    <thead class="bg-slate-200 dark:bg-slate-700">
+      <tr>
+        <th class="p-2">Player</th>
+        <th class="p-2">Team</th>
+        <th class="p-2">Proj</th>
+        <th class="p-2">Boost</th>
+        <th class="p-2">G</th>
+        <th class="p-2">A</th>
+        <th class="p-2">P</th>
+        <th class="p-2">SOG</th>
+        <th class="p-2">BLK</th>
+        <th class="p-2">B1</th>
+        <th class="p-2">B2</th>
+        <th class="p-2">B3</th>
+        <th class="p-2">B4</th>
+        <th class="p-2">B5</th>
+      </tr>
+    </thead><tbody>`;
+
+  nhlData.forEach(p=>{
+    html+=`
+    <tr class="border-t dark:border-slate-700">
+      <td class="p-2">${p.player}</td>
+      <td class="p-2 text-center">${p.team}</td>
+      <td class="p-2 text-right">${p.projection.toFixed(2)}</td>
+      <td class="p-2 text-right text-green-400">${p.boost.toFixed(1)}</td>
+      <td class="p-2 text-right">${p.goals.toFixed(2)}</td>
+      <td class="p-2 text-right">${p.assists.toFixed(2)}</td>
+      <td class="p-2 text-right">${p.points.toFixed(2)}</td>
+      <td class="p-2 text-right">${p.shots.toFixed(1)}</td>
+      <td class="p-2 text-right">${p.blocks.toFixed(1)}</td>
+      <td class="p-2 text-right">${p.b1.toFixed(2)}</td>
+      <td class="p-2 text-right">${p.b2.toFixed(2)}</td>
+      <td class="p-2 text-right">${p.b3.toFixed(2)}</td>
+      <td class="p-2 text-right">${p.b4.toFixed(2)}</td>
+      <td class="p-2 text-right">${p.b5.toFixed(2)}</td>
+    </tr>`;
+  });
+
+  html+="</tbody></table>";
+  nhlProj.innerHTML = html;
+}
+
+/* ================= NBA TABLE ================= */
+function renderNBATable(){
+  if(!nbaData.length){
+    nbaProj.innerHTML = "<p class='text-slate-400'>NBA data not loaded</p>";
     return;
   }
 
-  const headers = isNHL
-    ? ["Player","Proj","Boost","B1","B2","B3","B4","B5"]
-    : ["Player","Proj","Boost","PB1","PB2","PB3","PB4","PB5"];
-
-  let html = `<table class="w-full bg-white dark:bg-slate-800 text-sm rounded-lg">
+  let html = `
+  <h2 class="text-2xl font-bold mb-4">NBA Projections</h2>
+  <table class="w-full bg-white dark:bg-slate-800 text-sm rounded-lg">
     <thead class="bg-slate-200 dark:bg-slate-700">
-      <tr>${headers.map(h=>`<th class="p-2">${h}</th>`).join("")}</tr>
+      <tr>
+        <th class="p-2">Player</th>
+        <th class="p-2">Proj</th>
+        <th class="p-2">Boost</th>
+        <th class="p-2">PB1</th>
+        <th class="p-2">PB2</th>
+        <th class="p-2">PB3</th>
+        <th class="p-2">PB4</th>
+        <th class="p-2">PB5</th>
+      </tr>
     </thead><tbody>`;
 
-  data.forEach(p => {
-    html += `<tr class="border-t dark:border-slate-700">
+  nbaData.forEach(p=>{
+    html+=`
+    <tr class="border-t dark:border-slate-700">
       <td class="p-2">${p.player}</td>
       <td class="p-2 text-right">${p.projection.toFixed(2)}</td>
       <td class="p-2 text-right text-green-400">${p.boost.toFixed(1)}</td>
@@ -138,93 +166,67 @@ function renderTable(data, targetId, isNHL) {
     </tr>`;
   });
 
-  html += "</tbody></table>";
-  document.getElementById(targetId).innerHTML = html;
+  html+="</tbody></table>";
+  nbaProj.innerHTML = html;
 }
 
 /* ================= OPTIMIZER ================= */
-function renderDraft(data, targetId) {
-  if (!data.length) {
-    document.getElementById(targetId).innerHTML =
+function renderDraft(data,target){
+  if(!data.length){
+    document.getElementById(target).innerHTML =
       "<p class='text-slate-400'>No data available</p>";
     return;
   }
 
-  const top20 = [...data].sort((a,b)=>b.b3-a.b3).slice(0,20);
+  const top20=[...data].sort((a,b)=>b.b3-a.b3).slice(0,20);
+  let bestScore=-1,best=null;
 
-  let bestScore = -Infinity;
-  let best = null;
-
-  function permute(arr, l, res) {
-    if (l === arr.length) return res.push(arr.slice());
-    for (let i=l;i<arr.length;i++){
-      [arr[l],arr[i]]=[arr[i],arr[l]];
-      permute(arr,l+1,res);
-      [arr[l],arr[i]]=[arr[i],arr[l]];
+  function perm(a,l,res){
+    if(l===a.length)return res.push(a.slice());
+    for(let i=l;i<a.length;i++){
+      [a[l],a[i]]=[a[i],a[l]];
+      perm(a,l+1,res);
+      [a[l],a[i]]=[a[i],a[l]];
     }
   }
+  const perms=[]; perm(MULTS.slice(),0,perms);
 
-  const perms = [];
-  permute(MULTS.slice(),0,perms);
-
-  function backtrack(start, lineup) {
-    if (lineup.length === 5) {
+  function back(i,cur){
+    if(cur.length===5){
       perms.forEach(m=>{
-        let score = lineup.reduce((s,p,i)=>s+p.projection*(m[i]+p.boost),0);
-        if (score>bestScore){
-          bestScore=score;
-          best={lineup:[...lineup],mults:[...m]};
-        }
+        let s=cur.reduce((t,p,j)=>t+p.projection*(m[j]+p.boost),0);
+        if(s>bestScore){bestScore=s;best={cur:[...cur],m:[...m]};}
       });
       return;
     }
-    for (let i=start;i<top20.length;i++){
-      backtrack(i+1,[...lineup,top20[i]]);
-    }
+    for(let x=i;x<top20.length;x++) back(x+1,[...cur,top20[x]]);
   }
+  back(0,[]);
 
-  backtrack(0,[]);
+  let html=`<table class="w-full bg-white dark:bg-slate-800 rounded-lg">
+  <thead class="bg-slate-200 dark:bg-slate-700">
+    <tr><th class="p-2">Player</th><th class="p-2">Mult</th><th class="p-2">Score</th></tr>
+  </thead><tbody>`;
 
-  let html = `<table class="w-full bg-white dark:bg-slate-800 rounded-lg">
-    <thead class="bg-slate-200 dark:bg-slate-700">
-      <tr>
-        <th class="p-2">Player</th>
-        <th class="p-2 text-right">Proj</th>
-        <th class="p-2 text-right">Boost</th>
-        <th class="p-2 text-right">Mult</th>
-        <th class="p-2 text-right">Score</th>
-      </tr>
-    </thead><tbody>`;
-
-  let total = 0;
-
-  best.lineup
-    .map((p,i)=>({
-      p,
-      m: best.mults[i],
-      s: p.projection*(best.mults[i]+p.boost)
-    }))
+  let total=0;
+  best.cur.map((p,i)=>({p,m:best.m[i],s:p.projection*(best.m[i]+p.boost)}))
     .sort((a,b)=>b.m-a.m)
     .forEach(r=>{
       total+=r.s;
       html+=`<tr class="border-t dark:border-slate-700">
         <td class="p-2">${r.p.player}</td>
-        <td class="p-2 text-right">${r.p.projection.toFixed(2)}</td>
-        <td class="p-2 text-right text-green-400">${r.p.boost.toFixed(1)}</td>
         <td class="p-2 text-right">${r.m.toFixed(1)}</td>
         <td class="p-2 text-right font-bold">${r.s.toFixed(2)}</td>
       </tr>`;
     });
 
   html+=`</tbody>
-    <tfoot>
-      <tr class="font-bold border-t dark:border-slate-700">
-        <td class="p-2">Total</td>
-        <td colspan="4" class="p-2 text-right">${total.toFixed(2)}</td>
-      </tr>
-    </tfoot></table>`;
+  <tfoot><tr class="font-bold border-t">
+    <td class="p-2">Total</td>
+    <td colspan="2" class="p-2 text-right">${total.toFixed(2)}</td>
+  </tr></tfoot></table>`;
 
-  document.getElementById(targetId).innerHTML = html;
+  document.getElementById(target).innerHTML=html;
 }
 
 /* ================= THEME ================= */
@@ -232,8 +234,8 @@ function toggleTheme(){
   document.documentElement.classList.toggle("dark");
 }
 
-/* ================= MENU STYLE ================= */
-document.querySelectorAll(".menu-btn").forEach(b=>{
+/* ================= STYLE ================= */
+document.querySelectorAll(".menu").forEach(b=>{
   b.className="px-3 py-2 rounded bg-slate-300 dark:bg-slate-700 hover:bg-slate-400";
 });
 
