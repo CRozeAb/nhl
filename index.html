@@ -11,92 +11,218 @@
   </script>
 </head>
 
-<body class="bg-slate-100 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
+<body class="bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
 
-<div class="max-w-7xl mx-auto p-4">
+<!-- Aurora animated background -->
+<div class="aurora-bg" aria-hidden="true"></div>
+<div class="aurora-noise" aria-hidden="true"></div>
 
-  <!-- HEADER -->
-  <div class="flex flex-wrap gap-2 justify-between items-center mb-4">
-    <h1 id="pageTitle" class="text-3xl font-bold">NHL Projections</h1>
+<div class="max-w-7xl mx-auto p-4 relative z-10">
+
+  <!-- TOP BAR -->
+  <div class="flex flex-wrap gap-3 justify-between items-center mb-4">
+    <div class="flex items-center gap-3">
+      <div class="brand-badge">
+        <span class="brand-dot"></span>
+        <span class="font-bold tracking-wide">Projections Hub</span>
+      </div>
+      <h1 id="pageTitle" class="text-2xl md:text-3xl font-bold">Main Menu</h1>
+    </div>
 
     <div class="flex gap-2 flex-wrap">
-      <button onclick="loadLeague('nhl','proj')" class="btn">NHL Projections</button>
-      <button onclick="loadLeague('nhl','lineup')" class="btn">NHL Draft</button>
-      <button onclick="loadLeague('nhl','team')" class="btn">NHL Best Team</button>
-
-      <button onclick="loadLeague('nba','proj')" class="btn">NBA Projections</button>
-      <button onclick="loadLeague('nba','lineup')" class="btn">NBA Draft</button>
-
+      <button onclick="goHome()" class="btn btn-soft">Home</button>
       <button onclick="toggleTheme()" class="btn">🌙 / ☀️</button>
     </div>
   </div>
 
-  <!-- SEARCH -->
-  <div id="searchWrap" class="mb-4">
-    <input id="playerSearch" placeholder="Search player"
-      class="px-3 py-2 rounded border w-full max-w-sm dark:bg-slate-800">
-  </div>
+  <!-- LAYOUT -->
+  <div class="grid grid-cols-1 md:grid-cols-[260px,1fr] gap-4">
 
-  <!-- LOADING -->
-  <div id="loading" class="hidden text-center py-6 text-lg">
-    Loading data...
-  </div>
-
-  <!-- PROJECTIONS -->
-  <div id="projectionView" class="overflow-x-auto rounded-lg"></div>
-
-  <!-- LINEUP -->
-  <div id="lineupView" class="hidden mt-6">
-    <h2 class="text-2xl font-bold mb-2">Optimal Lineup</h2>
-    <table class="w-full bg-white dark:bg-slate-800 rounded-lg">
-      <thead class="bg-slate-200 dark:bg-slate-700">
-        <tr>
-          <th class="p-2 text-left">Player</th>
-          <th class="p-2 text-right">Proj</th>
-          <th class="p-2 text-right">Boost</th>
-          <th class="p-2 text-right">Mult</th>
-          <th class="p-2 text-right">Score</th>
-        </tr>
-      </thead>
-      <tbody id="lineupBody"></tbody>
-      <tfoot>
-        <tr class="font-bold border-t">
-          <td class="p-2">Total</td>
-          <td colspan="4" id="lineupTotal" class="p-2 text-right"></td>
-        </tr>
-      </tfoot>
-    </table>
-  </div>
-
-  <!-- BEST TEAM -->
-  <div id="teamView" class="hidden mt-6">
-    <div class="flex flex-wrap items-end justify-between gap-2 mb-2">
-      <h2 class="text-2xl font-bold">Highest Projected Team</h2>
-      <div class="text-sm opacity-80">
-        Team: <span id="bestTeamName" class="font-bold"></span>
+    <!-- MAIN MENU / VERTICAL TABS -->
+    <aside class="glass-card p-3 md:p-4">
+      <div class="mb-3">
+        <div class="text-xs uppercase tracking-widest opacity-70 mb-2">Navigation</div>
+        <div class="text-sm opacity-80">Pick a view to load.</div>
       </div>
-    </div>
 
-    <table class="w-full bg-white dark:bg-slate-800 rounded-lg">
-      <thead class="bg-slate-200 dark:bg-slate-700">
-        <tr>
-          <th class="p-2 text-left">Player</th>
-          <th class="p-2 text-center">Team</th>
-          <th class="p-2 text-right">PB3</th>
-          <th class="p-2 text-right">Proj</th>
-          <th class="p-2 text-right">Boost</th>
-          <th class="p-2 text-right">Mult</th>
-          <th class="p-2 text-right">Score</th>
-        </tr>
-      </thead>
-      <tbody id="teamBody"></tbody>
-      <tfoot>
-        <tr class="font-bold border-t">
-          <td class="p-2">Total</td>
-          <td colspan="6" id="teamTotal" class="p-2 text-right"></td>
-        </tr>
-      </tfoot>
-    </table>
+      <div class="flex flex-col gap-2">
+        <button onclick="loadLeague('nhl','proj')" class="nav-btn">
+          <span class="nav-icon">🏒</span>
+          <span class="flex-1 text-left">
+            <div class="font-semibold">NHL Projections</div>
+            <div class="text-xs opacity-70">Browse projections table</div>
+          </span>
+          <span class="nav-arrow">→</span>
+        </button>
+
+        <button onclick="loadLeague('nhl','lineup')" class="nav-btn">
+          <span class="nav-icon">📋</span>
+          <span class="flex-1 text-left">
+            <div class="font-semibold">NHL Draft</div>
+            <div class="text-xs opacity-70">Compute optimal lineup</div>
+          </span>
+          <span class="nav-arrow">→</span>
+        </button>
+
+        <button onclick="loadLeague('nhl','team')" class="nav-btn">
+          <span class="nav-icon">🏆</span>
+          <span class="flex-1 text-left">
+            <div class="font-semibold">NHL Best Team</div>
+            <div class="text-xs opacity-70">Best team by PB3</div>
+          </span>
+          <span class="nav-arrow">→</span>
+        </button>
+
+        <div class="h-px my-2 bg-white/10 dark:bg-white/10"></div>
+
+        <button onclick="loadLeague('nba','proj')" class="nav-btn">
+          <span class="nav-icon">🏀</span>
+          <span class="flex-1 text-left">
+            <div class="font-semibold">NBA Projections</div>
+            <div class="text-xs opacity-70">Browse projections table</div>
+          </span>
+          <span class="nav-arrow">→</span>
+        </button>
+
+        <button onclick="loadLeague('nba','lineup')" class="nav-btn">
+          <span class="nav-icon">📋</span>
+          <span class="flex-1 text-left">
+            <div class="font-semibold">NBA Draft</div>
+            <div class="text-xs opacity-70">Compute optimal lineup</div>
+          </span>
+          <span class="nav-arrow">→</span>
+        </button>
+      </div>
+
+      <div class="mt-4 text-xs opacity-70 leading-relaxed">
+        Tip: Use <span class="font-semibold">Home</span> anytime to return to this menu.
+      </div>
+    </aside>
+
+    <!-- CONTENT -->
+    <main class="glass-card p-3 md:p-4 min-h-[420px]">
+      <!-- HOME VIEW -->
+      <div id="homeView" class="fade-in">
+        <div class="hero-card p-5 md:p-7">
+          <div class="hero-glow" aria-hidden="true"></div>
+
+          <div class="flex flex-wrap items-end justify-between gap-4 relative z-10">
+            <div>
+              <div class="text-xs uppercase tracking-[0.25em] opacity-70 mb-2">Aurora Projections</div>
+              <div class="text-2xl md:text-3xl font-extrabold leading-tight">
+                Clean, fast, and animated<br class="hidden md:block" /> projections + lineups.
+              </div>
+              <div class="mt-3 text-sm md:text-base opacity-85 max-w-xl">
+                Use the menu on the left to open NHL/NBA projections, draft lineups, and the best team view.
+              </div>
+            </div>
+
+            <div class="flex gap-2 flex-wrap">
+              <button onclick="loadLeague('nhl','proj')" class="btn btn-primary">
+                Open NHL Projections
+              </button>
+              <button onclick="loadLeague('nba','proj')" class="btn btn-soft">
+                Open NBA Projections
+              </button>
+            </div>
+          </div>
+
+          <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3 relative z-10">
+            <div class="mini-card">
+              <div class="mini-title">Smooth UX</div>
+              <div class="mini-sub">Hover pop, fades, and subtle motion</div>
+            </div>
+            <div class="mini-card">
+              <div class="mini-title">Fast Compute</div>
+              <div class="mini-sub">Draft + Best Team scoring built-in</div>
+            </div>
+            <div class="mini-card">
+              <div class="mini-title">Aurora Theme</div>
+              <div class="mini-sub">Animated sky gradients, glass UI</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SEARCH -->
+      <div id="searchWrap" class="mb-4 hidden fade-in">
+        <input id="playerSearch" placeholder="Search player"
+          class="px-3 py-2 rounded border w-full max-w-sm dark:bg-slate-900/60 bg-white/60 backdrop-blur-md border-white/20 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-white/20">
+      </div>
+
+      <!-- LOADING -->
+      <div id="loading" class="hidden text-center py-10 text-lg fade-in">
+        <div class="spinner mx-auto mb-3"></div>
+        Loading data...
+      </div>
+
+      <!-- PROJECTIONS -->
+      <div id="projectionView" class="overflow-x-auto rounded-lg hidden fade-in"></div>
+
+      <!-- LINEUP -->
+      <div id="lineupView" class="hidden mt-2 fade-in">
+        <h2 class="text-2xl font-bold mb-2">Optimal Lineup</h2>
+        <div class="table-wrap">
+          <table class="w-full rounded-lg overflow-hidden">
+            <thead class="bg-white/20 dark:bg-white/10">
+              <tr>
+                <th class="p-2 text-left">Player</th>
+                <th class="p-2 text-right">Proj</th>
+                <th class="p-2 text-right">Boost</th>
+                <th class="p-2 text-right">Mult</th>
+                <th class="p-2 text-right">Score</th>
+              </tr>
+            </thead>
+            <tbody id="lineupBody" class="bg-white/10 dark:bg-white/5"></tbody>
+            <tfoot>
+              <tr class="font-bold border-t border-white/10">
+                <td class="p-2">Total</td>
+                <td colspan="4" id="lineupTotal" class="p-2 text-right"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- BEST TEAM -->
+      <div id="teamView" class="hidden mt-2 fade-in">
+        <div class="flex flex-wrap items-end justify-between gap-2 mb-2">
+          <h2 class="text-2xl font-bold">Highest Projected Team</h2>
+          <div class="text-sm opacity-80">
+            Team: <span id="bestTeamName" class="font-bold"></span>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="w-full rounded-lg overflow-hidden">
+            <thead class="bg-white/20 dark:bg-white/10">
+              <tr>
+                <th class="p-2 text-left">Player</th>
+                <th class="p-2 text-center">Team</th>
+                <th class="p-2 text-right">PB3</th>
+                <th class="p-2 text-right">Proj</th>
+                <th class="p-2 text-right">Boost</th>
+                <th class="p-2 text-right">Mult</th>
+                <th class="p-2 text-right">Score</th>
+              </tr>
+            </thead>
+            <tbody id="teamBody" class="bg-white/10 dark:bg-white/5"></tbody>
+            <tfoot>
+              <tr class="font-bold border-t border-white/10">
+                <td class="p-2">Total</td>
+                <td colspan="6" id="teamTotal" class="p-2 text-right"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <div class="mt-4 text-xs opacity-70 flex items-center justify-between">
+    <div>Built with Aurora UI</div>
+    <div class="opacity-70">Created by croze</div>
   </div>
 
 </div>
@@ -111,6 +237,20 @@ let league = "nhl";
 let mode = "proj";
 let allData = [];
 
+/* ================= HOME ================= */
+
+function goHome() {
+  mode = "home";
+  pageTitle.textContent = "Main Menu";
+
+  homeView.classList.remove("hidden");
+  searchWrap.classList.add("hidden");
+  projectionView.classList.add("hidden");
+  lineupView.classList.add("hidden");
+  teamView.classList.add("hidden");
+  loading.classList.add("hidden");
+}
+
 /* ================= LOAD ================= */
 
 async function loadLeague(lg, md) {
@@ -123,6 +263,9 @@ async function loadLeague(lg, md) {
       md === "lineup" ? " Today’s Draft" :
       " Best Team"
     );
+
+  // Toggle views (keep changes minimal)
+  homeView.classList.toggle("hidden", true);
 
   projectionView.classList.toggle("hidden", md !== "proj");
   lineupView.classList.toggle("hidden", md !== "lineup");
@@ -150,8 +293,8 @@ function renderTable() {
   );
 
   let html = `
-  <table class="w-full bg-white dark:bg-slate-800 text-sm">
-    <thead class="bg-slate-200 dark:bg-slate-700">
+  <table class="w-full text-sm rounded-lg overflow-hidden">
+    <thead class="bg-white/20 dark:bg-white/10">
       <tr>
         <th class="p-2">Player</th>
         ${league === "nhl" ? `
@@ -169,11 +312,11 @@ function renderTable() {
         <th class="p-2">B4</th>
         <th class="p-2">B5</th>
       </tr>
-    </thead><tbody>`;
+    </thead><tbody class="bg-white/10 dark:bg-white/5">`;
 
   rows.forEach(p => {
     html += `
-    <tr class="border-t">
+    <tr class="border-t border-white/10 hover-row">
       <td class="p-2">${p.player ?? ""}</td>
       ${league === "nhl" ? `
         <td class="p-2 text-center">${p.team ?? ""}</td>
@@ -183,7 +326,7 @@ function renderTable() {
         <td class="p-2 text-right">${Number(p.shots ?? 0).toFixed(1)}</td>
         <td class="p-2 text-right">${Number(p.blocks ?? 0).toFixed(1)}</td>` : ``}
       <td class="p-2 text-right">${Number(p.projection ?? 0).toFixed(2)}</td>
-      <td class="p-2 text-right text-green-400">${Number(p.boost ?? 0).toFixed(1)}</td>
+      <td class="p-2 text-right text-emerald-200">${Number(p.boost ?? 0).toFixed(1)}</td>
       <td class="p-2 text-right">${Number(p.b1 ?? 0).toFixed(2)}</td>
       <td class="p-2 text-right">${Number(p.b2 ?? 0).toFixed(2)}</td>
       <td class="p-2 text-right">${Number(p.b3 ?? 0).toFixed(2)}</td>
@@ -199,7 +342,7 @@ function renderTable() {
 
 function computeBestLineupFromPool(pool) {
   const mults = [2, 1.8, 1.6, 1.4, 1.2];
-  if (pool.length < 5) return null;
+  if (!Array.isArray(pool) || pool.length < 5) return null;
 
   const perms = [];
   (function permute(a, l) {
@@ -257,10 +400,10 @@ function renderLineup(best) {
 
   rows.forEach(r => {
     lineupBody.insertAdjacentHTML("beforeend", `
-      <tr class="border-t">
+      <tr class="border-t border-white/10 hover-row">
         <td class="p-2">${r.p.player}</td>
         <td class="p-2 text-right">${r.p.projection.toFixed(2)}</td>
-        <td class="p-2 text-right text-green-400">${r.p.boost.toFixed(1)}</td>
+        <td class="p-2 text-right text-emerald-200">${r.p.boost.toFixed(1)}</td>
         <td class="p-2 text-right">${r.m.toFixed(1)}</td>
         <td class="p-2 text-right font-bold">${r.s.toFixed(2)}</td>
       </tr>
@@ -275,14 +418,16 @@ function renderLineup(best) {
 function computeBestTeam() {
   const byTeam = {};
   allData.forEach(p => {
-    if (!byTeam[p.team]) byTeam[p.team] = [];
-    byTeam[p.team].push(p);
+    const t = (p.team ?? "UNK").toString().trim() || "UNK";
+    if (!byTeam[t]) byTeam[t] = [];
+    byTeam[t].push(p);
   });
 
   let bestTeam = null;
 
   Object.entries(byTeam).forEach(([team, players]) => {
     const top6 = players
+      .slice()
       .sort((a, b) => b.b3 - a.b3)
       .slice(0, 6);
 
@@ -304,12 +449,12 @@ function computeBestTeam() {
     const s = p.projection * (m + p.boost);
 
     teamBody.insertAdjacentHTML("beforeend", `
-      <tr class="border-t">
+      <tr class="border-t border-white/10 hover-row">
         <td class="p-2">${p.player}</td>
         <td class="p-2 text-center">${p.team}</td>
         <td class="p-2 text-right">${p.b3.toFixed(2)}</td>
         <td class="p-2 text-right">${p.projection.toFixed(2)}</td>
-        <td class="p-2 text-right text-green-400">${p.boost.toFixed(1)}</td>
+        <td class="p-2 text-right text-emerald-200">${p.boost.toFixed(1)}</td>
         <td class="p-2 text-right">${m.toFixed(1)}</td>
         <td class="p-2 text-right font-bold">${s.toFixed(2)}</td>
       </tr>
@@ -328,12 +473,220 @@ function toggleTheme() {
 playerSearch.addEventListener("input", renderTable);
 
 /* INITIAL LOAD */
-loadLeague("nhl", "proj");
+goHome();
 </script>
 
 <style>
-.btn{padding:.5rem 1rem;border-radius:.375rem;background:#cbd5e1}
-.dark .btn{background:#334155}
+/* ====== Base buttons (kept close to your original) ====== */
+.btn{
+  padding:.55rem 1rem;
+  border-radius:.6rem;
+  background:rgba(203,213,225,.75);
+  border:1px solid rgba(255,255,255,.18);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: transform .18s ease, box-shadow .18s ease, background .18s ease, opacity .18s ease;
+}
+.dark .btn{
+  background:rgba(51,65,85,.65);
+  border:1px solid rgba(255,255,255,.10);
+}
+.btn:hover{
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 12px 30px rgba(0,0,0,.18);
+}
+.btn:active{ transform: translateY(0) scale(.99); }
+
+.btn-soft{
+  background:rgba(255,255,255,.45);
+}
+.dark .btn-soft{ background:rgba(255,255,255,.08); }
+
+.btn-primary{
+  background: linear-gradient(90deg, rgba(34,211,238,.35), rgba(167,139,250,.35), rgba(16,185,129,.35));
+  border:1px solid rgba(255,255,255,.22);
+}
+
+/* ====== Glass cards ====== */
+.glass-card{
+  border-radius: 1rem;
+  border: 1px solid rgba(255,255,255,.16);
+  background: rgba(255,255,255,.22);
+  box-shadow: 0 18px 55px rgba(0,0,0,.18);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  transform: translateZ(0);
+}
+.dark .glass-card{
+  background: rgba(2,6,23,.35);
+  border: 1px solid rgba(255,255,255,.10);
+  box-shadow: 0 18px 55px rgba(0,0,0,.45);
+}
+
+.table-wrap{
+  border-radius: 1rem;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.14);
+}
+
+/* ====== Nav buttons ====== */
+.nav-btn{
+  display:flex;
+  align-items:center;
+  gap:.75rem;
+  padding:.85rem .9rem;
+  border-radius:.9rem;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.12);
+  transition: transform .18s ease, box-shadow .18s ease, background .18s ease, opacity .18s ease;
+}
+.dark .nav-btn{ background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.10); }
+.nav-btn:hover{
+  transform: translateY(-2px);
+  background: rgba(255,255,255,.18);
+  box-shadow: 0 16px 38px rgba(0,0,0,.18);
+}
+.dark .nav-btn:hover{ background: rgba(255,255,255,.10); box-shadow: 0 16px 38px rgba(0,0,0,.45); }
+.nav-icon{
+  width: 38px; height: 38px;
+  display:grid; place-items:center;
+  border-radius: .85rem;
+  background: rgba(255,255,255,.18);
+  border:1px solid rgba(255,255,255,.14);
+}
+.dark .nav-icon{ background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.10); }
+.nav-arrow{ opacity:.75; transition: transform .18s ease, opacity .18s ease; }
+.nav-btn:hover .nav-arrow{ transform: translateX(3px); opacity: 1; }
+
+/* ====== Hero ====== */
+.hero-card{
+  position: relative;
+  border-radius: 1.25rem;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.16);
+  background: linear-gradient(120deg, rgba(34,211,238,.16), rgba(167,139,250,.14), rgba(16,185,129,.12));
+  box-shadow: 0 24px 70px rgba(0,0,0,.20);
+}
+.dark .hero-card{
+  background: linear-gradient(120deg, rgba(34,211,238,.12), rgba(167,139,250,.10), rgba(16,185,129,.08));
+  box-shadow: 0 24px 70px rgba(0,0,0,.55);
+}
+.hero-glow{
+  position:absolute; inset:-60px;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(34,211,238,.45), transparent 55%),
+    radial-gradient(circle at 80% 40%, rgba(167,139,250,.40), transparent 55%),
+    radial-gradient(circle at 50% 85%, rgba(16,185,129,.35), transparent 55%);
+  filter: blur(20px);
+  opacity:.8;
+  animation: floatGlow 8s ease-in-out infinite;
+}
+
+/* ====== Mini cards ====== */
+.mini-card{
+  border-radius: 1rem;
+  padding: .9rem 1rem;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.12);
+  transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+}
+.dark .mini-card{ background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.10); }
+.mini-card:hover{
+  transform: translateY(-3px);
+  background: rgba(255,255,255,.18);
+  box-shadow: 0 18px 44px rgba(0,0,0,.18);
+}
+.dark .mini-card:hover{ background: rgba(255,255,255,.10); box-shadow: 0 18px 44px rgba(0,0,0,.45); }
+.mini-title{ font-weight: 700; }
+.mini-sub{ font-size: .8rem; opacity: .75; margin-top: .15rem; }
+
+/* ====== Brand badge ====== */
+.brand-badge{
+  display:flex;
+  align-items:center;
+  gap:.5rem;
+  padding:.4rem .7rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.16);
+  background: rgba(255,255,255,.14);
+  backdrop-filter: blur(12px);
+}
+.dark .brand-badge{ background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.10); }
+.brand-dot{
+  width:10px; height:10px; border-radius:999px;
+  background: linear-gradient(90deg, rgba(34,211,238,1), rgba(167,139,250,1), rgba(16,185,129,1));
+  box-shadow: 0 0 18px rgba(34,211,238,.35);
+  animation: pulseDot 2.2s ease-in-out infinite;
+}
+
+/* ====== Hover row pop ====== */
+.hover-row{
+  transition: transform .14s ease, background .14s ease;
+}
+.hover-row:hover{
+  transform: translateX(2px);
+  background: rgba(255,255,255,.10);
+}
+.dark .hover-row:hover{
+  background: rgba(255,255,255,.06);
+}
+
+/* ====== Fade-in helper ====== */
+.fade-in{
+  animation: fadeInUp .35s ease both;
+}
+@keyframes fadeInUp{
+  from{ opacity:0; transform: translateY(8px); }
+  to{ opacity:1; transform: translateY(0); }
+}
+
+/* ====== Spinner ====== */
+.spinner{
+  width: 36px; height: 36px;
+  border-radius: 999px;
+  border: 3px solid rgba(255,255,255,.25);
+  border-top-color: rgba(255,255,255,.75);
+  animation: spin 1s linear infinite;
+}
+@keyframes spin{ to{ transform: rotate(360deg); } }
+
+/* ====== Aurora background ====== */
+.aurora-bg{
+  position: fixed;
+  inset: -30%;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 10% 20%, rgba(34,211,238,.35), transparent 55%),
+    radial-gradient(circle at 90% 30%, rgba(167,139,250,.32), transparent 55%),
+    radial-gradient(circle at 50% 90%, rgba(16,185,129,.28), transparent 55%),
+    radial-gradient(circle at 30% 70%, rgba(59,130,246,.18), transparent 55%);
+  filter: blur(22px) saturate(1.25);
+  animation: auroraMove 12s ease-in-out infinite;
+}
+.aurora-noise{
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: .08;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='320' height='320' filter='url(%23n)' opacity='.6'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+}
+@keyframes auroraMove{
+  0%   { transform: translate3d(-2%, -1%, 0) scale(1.02); }
+  50%  { transform: translate3d(2%, 1%, 0) scale(1.04); }
+  100% { transform: translate3d(-2%, -1%, 0) scale(1.02); }
+}
+@keyframes floatGlow{
+  0%   { transform: translate3d(-1%, -1%, 0) scale(1.02); }
+  50%  { transform: translate3d(1%, 1%, 0) scale(1.04); }
+  100% { transform: translate3d(-1%, -1%, 0) scale(1.02); }
+}
+@keyframes pulseDot{
+  0%,100%{ transform: scale(1); opacity: .9; }
+  50%{ transform: scale(1.15); opacity: 1; }
+}
 </style>
 
 </body>
