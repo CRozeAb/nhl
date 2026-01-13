@@ -13,18 +13,14 @@
 
 <body class="bg-slate-950 text-slate-100">
 
-<!-- Aurora background -->
 <div class="aurora-bg" aria-hidden="true"></div>
 <div class="aurora-noise" aria-hidden="true"></div>
 
-<!-- Page transition overlay -->
-<div id="transitionOverlay" class="transition-overlay hidden" aria-hidden="true">
-  <div class="transition-ripple"></div>
-</div>
+<!-- Water-ripple transition overlay -->
+<div id="transitionOverlay" class="transition-overlay hidden" aria-hidden="true"></div>
 
 <div class="max-w-7xl mx-auto p-4 relative z-10">
 
-  <!-- TOP BAR -->
   <div class="flex flex-wrap gap-3 justify-between items-center mb-4">
     <div class="flex items-center gap-3">
       <div class="brand-badge">
@@ -35,96 +31,75 @@
     </div>
 
     <div class="flex gap-2 flex-wrap">
-      <button onclick="goHome(event)" class="btn btn-soft">Home</button>
+      <button onclick="goHome()" class="btn btn-soft">Home</button>
     </div>
   </div>
 
-  <!-- LAYOUT -->
   <div class="grid grid-cols-1 md:grid-cols-[260px,1fr] gap-4">
 
-    <!-- VERTICAL TABS -->
     <aside class="glass-card p-3 md:p-4">
       <div class="mb-3">
         <div class="text-xs uppercase tracking-widest opacity-70 mb-2">Navigation</div>
       </div>
 
       <div class="flex flex-col gap-2">
-        <button onclick="loadLeague('nhl','proj', event)" class="nav-btn">
+        <button onclick="loadLeague('nhl','proj')" class="nav-btn">
           <span class="nav-icon">🏒</span>
-          <span class="flex-1 text-left">
-            <div class="font-semibold">NHL Projections</div>
-          </span>
+          <span class="flex-1 text-left"><div class="font-semibold">NHL Projections</div></span>
           <span class="nav-arrow">→</span>
         </button>
 
-        <button onclick="loadLeague('nhl','lineup', event)" class="nav-btn">
+        <button onclick="loadLeague('nhl','lineup')" class="nav-btn">
           <span class="nav-icon">📋</span>
-          <span class="flex-1 text-left">
-            <div class="font-semibold">NHL Draft</div>
-          </span>
+          <span class="flex-1 text-left"><div class="font-semibold">NHL Draft</div></span>
           <span class="nav-arrow">→</span>
         </button>
 
-        <button onclick="loadLeague('nhl','team', event)" class="nav-btn">
+        <button onclick="loadLeague('nhl','team')" class="nav-btn">
           <span class="nav-icon">🏆</span>
-          <span class="flex-1 text-left">
-            <div class="font-semibold">NHL Best Team</div>
-          </span>
+          <span class="flex-1 text-left"><div class="font-semibold">NHL Best Team</div></span>
           <span class="nav-arrow">→</span>
         </button>
 
         <div class="h-px my-2 bg-white/10"></div>
 
-        <button onclick="loadLeague('nba','proj', event)" class="nav-btn">
+        <button onclick="loadLeague('nba','proj')" class="nav-btn">
           <span class="nav-icon">🏀</span>
-          <span class="flex-1 text-left">
-            <div class="font-semibold">NBA Projections</div>
-          </span>
+          <span class="flex-1 text-left"><div class="font-semibold">NBA Projections</div></span>
           <span class="nav-arrow">→</span>
         </button>
 
-        <button onclick="loadLeague('nba','lineup', event)" class="nav-btn">
+        <button onclick="loadLeague('nba','lineup')" class="nav-btn">
           <span class="nav-icon">📋</span>
-          <span class="flex-1 text-left">
-            <div class="font-semibold">NBA Draft</div>
-          </span>
+          <span class="flex-1 text-left"><div class="font-semibold">NBA Draft</div></span>
           <span class="nav-arrow">→</span>
         </button>
       </div>
     </aside>
 
-    <!-- CONTENT -->
     <main class="glass-card p-3 md:p-4 min-h-[420px]">
-
-      <!-- HOME VIEW -->
       <div id="homeView" class="fade-in">
         <div class="hero-card p-6 md:p-8">
           <div class="hero-glow" aria-hidden="true"></div>
           <div class="relative z-10">
             <div class="text-xs uppercase tracking-[0.25em] opacity-70 mb-2">Main Menu</div>
-            <div class="text-2xl md:text-3xl font-extrabold leading-tight">
-              Choose a tab to load
-            </div>
+            <div class="text-2xl md:text-3xl font-extrabold leading-tight">Choose a tab to load</div>
           </div>
         </div>
       </div>
 
-      <!-- SEARCH -->
       <div id="searchWrap" class="mb-4 hidden fade-in">
         <input id="playerSearch" placeholder="Search player"
           class="px-3 py-2 rounded border w-full max-w-sm bg-white/5 backdrop-blur-md border-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-200/20">
       </div>
 
-      <!-- LOADING -->
       <div id="loading" class="hidden text-center py-10 text-lg fade-in">
         <div class="spinner mx-auto mb-3"></div>
         Loading data...
       </div>
 
-      <!-- PROJECTIONS -->
       <div id="projectionView" class="overflow-x-auto rounded-lg hidden fade-in"></div>
 
-      <!-- LINEUP -->
       <div id="lineupView" class="hidden mt-2 fade-in">
         <h2 class="text-2xl font-bold mb-2">Optimal Lineup</h2>
         <div class="table-wrap">
@@ -149,7 +124,6 @@
         </div>
       </div>
 
-      <!-- BEST TEAM -->
       <div id="teamView" class="hidden mt-2 fade-in">
         <div class="flex flex-wrap items-end justify-between gap-2 mb-2">
           <h2 class="text-2xl font-bold">Highest Projected Team</h2>
@@ -181,7 +155,6 @@
           </table>
         </div>
       </div>
-
     </main>
   </div>
 
@@ -192,8 +165,6 @@
 </div>
 
 <script>
-/* ================= CONFIG ================= */
-
 const BASE_URL =
 "https://script.google.com/macros/s/AKfycbyINrZV6oyDhAQKeeuui5TOhTMKsZABb0SHYHbN4LXPFNBRykOBj0rvMAjXGMdJtf6U/exec";
 
@@ -201,58 +172,54 @@ let league = "nhl";
 let mode = "proj";
 let allData = [];
 
-/* ================= TRANSITION (RIPPLE) ================= */
+/* ===== Water ripple overlay control =====
+   Uses a full-screen SVG displacement filter to create non-circular,
+   whole-screen water ripples while loading. */
+let rippleRAF = null;
+let rippleStart = 0;
 
-function startTransition(ev) {
+function startWaterRipple() {
   const overlay = document.getElementById("transitionOverlay");
-  const ripple = overlay.querySelector(".transition-ripple");
-
-  // Pick ripple origin: click position if available; otherwise center
-  let x = window.innerWidth / 2;
-  let y = window.innerHeight / 2;
-
-  if (ev && ev.clientX != null && ev.clientY != null) {
-    x = ev.clientX;
-    y = ev.clientY;
-  }
-
-  overlay.style.setProperty("--rx", x + "px");
-  overlay.style.setProperty("--ry", y + "px");
-
-  // Restart animation cleanly
   overlay.classList.remove("hidden");
-  overlay.classList.remove("play");
-  void overlay.offsetWidth; // reflow
   overlay.classList.add("play");
 
-  // Return a promise that resolves when the "entry" pulse finishes
-  return new Promise(resolve => {
-    const onDone = (e) => {
-      if (e.animationName === "rippleIn") {
-        ripple.removeEventListener("animationend", onDone);
-        resolve();
-      }
-    };
-    ripple.addEventListener("animationend", onDone);
-  });
+  rippleStart = performance.now();
+  const turb = document.getElementById("ripTurb");
+  const disp = document.getElementById("ripDisp");
+
+  const tick = (t) => {
+    const dt = (t - rippleStart) / 1000;
+    // animate turbulence "seed-like" effect by shifting baseFrequency slightly
+    const bfX = 0.010 + 0.004 * Math.sin(dt * 1.3);
+    const bfY = 0.020 + 0.006 * Math.cos(dt * 1.1);
+    turb.setAttribute("baseFrequency", `${bfX.toFixed(4)} ${bfY.toFixed(4)}`);
+
+    // animate displacement strength up/down (color intensifies via CSS)
+    const scale = 18 + 10 * (0.5 + 0.5 * Math.sin(dt * 2.0));
+    disp.setAttribute("scale", scale.toFixed(1));
+
+    rippleRAF = requestAnimationFrame(tick);
+  };
+
+  rippleRAF = requestAnimationFrame(tick);
 }
 
-function endTransition() {
+function stopWaterRipple() {
   const overlay = document.getElementById("transitionOverlay");
   overlay.classList.remove("play");
   overlay.classList.add("out");
 
-  // hide after fade
+  if (rippleRAF) cancelAnimationFrame(rippleRAF);
+  rippleRAF = null;
+
   setTimeout(() => {
     overlay.classList.add("hidden");
     overlay.classList.remove("out");
-  }, 260);
+  }, 320);
 }
 
-/* ================= HOME ================= */
-
-async function goHome(ev) {
-  await startTransition(ev);
+async function goHome() {
+  startWaterRipple();
 
   mode = "home";
   pageTitle.textContent = "Main Menu";
@@ -264,13 +231,11 @@ async function goHome(ev) {
   teamView.classList.add("hidden");
   loading.classList.add("hidden");
 
-  endTransition();
+  stopWaterRipple();
 }
 
-/* ================= LOAD ================= */
-
-async function loadLeague(lg, md, ev) {
-  await startTransition(ev);
+async function loadLeague(lg, md) {
+  startWaterRipple();
 
   league = lg;
   mode = md;
@@ -282,7 +247,6 @@ async function loadLeague(lg, md, ev) {
       " Best Team"
     );
 
-  // Toggle views (kept close to your flow)
   homeView.classList.toggle("hidden", true);
 
   projectionView.classList.toggle("hidden", md !== "proj");
@@ -303,10 +267,8 @@ async function loadLeague(lg, md, ev) {
   else if (md === "lineup") computeLineup();
   else computeBestTeam();
 
-  endTransition();
+  stopWaterRipple();
 }
-
-/* ================= TABLE ================= */
 
 function renderTable() {
   const search = playerSearch.value.toLowerCase();
@@ -360,8 +322,6 @@ function renderTable() {
   projectionView.innerHTML = html + "</tbody></table>";
 }
 
-/* ================= SHARED SOLVER ================= */
-
 function computeBestLineupFromPool(pool) {
   const mults = [2, 1.8, 1.6, 1.4, 1.2];
   if (!Array.isArray(pool) || pool.length < 5) return null;
@@ -399,8 +359,6 @@ function computeBestLineupFromPool(pool) {
   return best;
 }
 
-/* ================= LINEUP ================= */
-
 function computeLineup() {
   const pool = [...allData]
     .sort((a, b) => b.b3 - a.b3)
@@ -434,8 +392,6 @@ function renderLineup(best) {
 
   lineupTotal.textContent = best.score.toFixed(2);
 }
-
-/* ================= BEST TEAM ================= */
 
 function computeBestTeam() {
   const byTeam = {};
@@ -486,77 +442,49 @@ function computeBestTeam() {
   teamTotal.textContent = bestTeam.best.score.toFixed(2);
 }
 
-/* ================= UTILS ================= */
-
 playerSearch.addEventListener("input", renderTable);
 
-/* INITIAL LOAD */
 goHome();
 </script>
 
 <style>
-/* Buttons */
 .btn{
-  padding:.55rem 1rem;
-  border-radius:.6rem;
+  padding:.55rem 1rem;border-radius:.6rem;
   background: rgba(255,255,255,.06);
   border: 1px solid rgba(255,255,255,.10);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);-webkit-backdrop-filter: blur(10px);
   transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
 }
-.btn:hover{
-  transform: translateY(-2px);
-  box-shadow: 0 16px 40px rgba(0,0,0,.45);
-  background: rgba(255,255,255,.08);
-}
+.btn:hover{ transform: translateY(-2px); box-shadow: 0 16px 40px rgba(0,0,0,.55); background: rgba(255,255,255,.08); }
 .btn:active{ transform: translateY(0); }
+.btn-soft{ background: rgba(255,255,255,.05); }
 
-.btn-soft{
-  background: rgba(255,255,255,.05);
-}
-
-/* Glass */
 .glass-card{
   border-radius: 1rem;
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(2,6,23,.35);
   box-shadow: 0 18px 55px rgba(0,0,0,.55);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);-webkit-backdrop-filter: blur(14px);
 }
 
-/* Nav */
 .nav-btn{
-  display:flex;
-  align-items:center;
-  gap:.75rem;
-  padding:.85rem .9rem;
-  border-radius:.9rem;
+  display:flex;align-items:center;gap:.75rem;
+  padding:.85rem .9rem;border-radius:.9rem;
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(255,255,255,.05);
   transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
 }
-.nav-btn:hover{
-  transform: translateY(-2px);
-  background: rgba(255,255,255,.08);
-  box-shadow: 0 16px 38px rgba(0,0,0,.55);
-}
+.nav-btn:hover{ transform: translateY(-2px); background: rgba(255,255,255,.08); box-shadow: 0 16px 38px rgba(0,0,0,.55); }
 .nav-icon{
-  width: 38px; height: 38px;
-  display:grid; place-items:center;
-  border-radius: .85rem;
-  background: rgba(255,255,255,.06);
+  width: 38px;height: 38px;display:grid;place-items:center;
+  border-radius: .85rem;background: rgba(255,255,255,.06);
   border: 1px solid rgba(255,255,255,.10);
 }
 .nav-arrow{ opacity:.75; transition: transform .18s ease, opacity .18s ease; }
 .nav-btn:hover .nav-arrow{ transform: translateX(3px); opacity: 1; }
 
-/* Hero */
 .hero-card{
-  position: relative;
-  border-radius: 1.25rem;
-  overflow: hidden;
+  position: relative;border-radius: 1.25rem;overflow: hidden;
   border: 1px solid rgba(255,255,255,.10);
   background: linear-gradient(120deg,
     rgba(16,185,129,.16),
@@ -573,67 +501,41 @@ goHome();
     radial-gradient(circle at 82% 40%, rgba(34,211,238,.52), transparent 55%),
     radial-gradient(circle at 55% 88%, rgba(16,185,129,.40), transparent 60%),
     radial-gradient(circle at 35% 70%, rgba(34,211,238,.32), transparent 60%);
-  filter: blur(20px);
-  opacity:.85;
+  filter: blur(20px); opacity:.85;
   animation: floatGlow 10s ease-in-out infinite;
 }
 
-/* Brand */
 .brand-badge{
-  display:flex;
-  align-items:center;
-  gap:.5rem;
-  padding:.4rem .7rem;
-  border-radius: 999px;
+  display:flex;align-items:center;gap:.5rem;
+  padding:.4rem .7rem;border-radius: 999px;
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(255,255,255,.05);
   backdrop-filter: blur(12px);
 }
 .brand-dot{
-  width:10px; height:10px; border-radius:999px;
+  width:10px;height:10px;border-radius:999px;
   background: linear-gradient(90deg, rgba(16,185,129,1), rgba(34,211,238,1));
   box-shadow: 0 0 18px rgba(34,211,238,.25);
   animation: pulseDot 2.2s ease-in-out infinite;
 }
 
-/* Table wrap */
-.table-wrap{
-  border-radius: 1rem;
-  overflow: hidden;
-  border: 1px solid rgba(255,255,255,.10);
-}
+.table-wrap{ border-radius: 1rem; overflow: hidden; border: 1px solid rgba(255,255,255,.10); }
+.hover-row{ transition: transform .14s ease, background .14s ease; }
+.hover-row:hover{ transform: translateX(2px); background: rgba(255,255,255,.06); }
 
-/* Hover row */
-.hover-row{
-  transition: transform .14s ease, background .14s ease;
-}
-.hover-row:hover{
-  transform: translateX(2px);
-  background: rgba(255,255,255,.06);
-}
-
-/* Fade in */
 .fade-in{ animation: fadeInUp .28s ease both; }
-@keyframes fadeInUp{
-  from{ opacity:0; transform: translateY(10px); }
-  to{ opacity:1; transform: translateY(0); }
-}
+@keyframes fadeInUp{ from{opacity:0;transform: translateY(10px);} to{opacity:1;transform: translateY(0);} }
 
-/* Spinner */
 .spinner{
-  width: 36px; height: 36px;
-  border-radius: 999px;
+  width: 36px;height: 36px;border-radius: 999px;
   border: 3px solid rgba(255,255,255,.18);
   border-top-color: rgba(34,211,238,.65);
   animation: spin 1s linear infinite;
 }
 @keyframes spin{ to{ transform: rotate(360deg); } }
 
-/* Aurora background (more green + light blue patches) */
 .aurora-bg{
-  position: fixed;
-  inset: -30%;
-  z-index: 0;
+  position: fixed; inset: -30%; z-index: 0;
   background:
     radial-gradient(circle at 12% 22%, rgba(16,185,129,.42), transparent 58%),
     radial-gradient(circle at 86% 28%, rgba(34,211,238,.40), transparent 58%),
@@ -644,86 +546,103 @@ goHome();
   animation: auroraMove 12s ease-in-out infinite;
 }
 .aurora-noise{
-  position: fixed;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  opacity: .08;
+  position: fixed; inset: 0; z-index: 1;
+  pointer-events: none; opacity: .08;
   background-image:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='320' height='320' filter='url(%23n)' opacity='.6'/%3E%3C/svg%3E");
   mix-blend-mode: overlay;
 }
 @keyframes auroraMove{
-  0%   { transform: translate3d(-2%, -1%, 0) scale(1.02); }
-  50%  { transform: translate3d(2%, 1%, 0) scale(1.05); }
-  100% { transform: translate3d(-2%, -1%, 0) scale(1.02); }
+  0%{ transform: translate3d(-2%, -1%, 0) scale(1.02); }
+  50%{ transform: translate3d(2%, 1%, 0) scale(1.05); }
+  100%{ transform: translate3d(-2%, -1%, 0) scale(1.02); }
 }
 @keyframes floatGlow{
-  0%   { transform: translate3d(-1%, -1%, 0) scale(1.02); }
-  50%  { transform: translate3d(1%, 1%, 0) scale(1.05); }
-  100% { transform: translate3d(-1%, -1%, 0) scale(1.02); }
+  0%{ transform: translate3d(-1%, -1%, 0) scale(1.02); }
+  50%{ transform: translate3d(1%, 1%, 0) scale(1.05); }
+  100%{ transform: translate3d(-1%, -1%, 0) scale(1.02); }
 }
 @keyframes pulseDot{
   0%,100%{ transform: scale(1); opacity: .9; }
   50%{ transform: scale(1.18); opacity: 1; }
 }
 
-/* Transition overlay + ripple */
+/* Full-screen water ripple overlay (non-circular) */
 .transition-overlay{
   position: fixed;
   inset: 0;
   z-index: 9999;
   pointer-events: none;
-  background: rgba(2,6,23,.40);
   opacity: 0;
+  transition: opacity .18s ease;
 }
 .transition-overlay.play{
   opacity: 1;
 }
 .transition-overlay.out{
-  animation: overlayOut .26s ease forwards;
-}
-@keyframes overlayOut{
-  from{ opacity: 1; }
-  to{ opacity: 0; }
-}
-.transition-ripple{
-  position: absolute;
-  left: var(--rx);
-  top: var(--ry);
-  width: 20px;
-  height: 20px;
-  transform: translate(-50%,-50%);
-  border-radius: 999px;
-  background:
-    radial-gradient(circle,
-      rgba(34,211,238,.38) 0%,
-      rgba(16,185,129,.32) 38%,
-      rgba(34,211,238,.18) 58%,
-      rgba(16,185,129,0) 72%
-    );
-  filter: blur(0px) saturate(1.6);
   opacity: 0;
+  transition: opacity .32s ease;
 }
-.transition-overlay.play .transition-ripple{
-  animation: rippleIn .62s ease-out forwards;
+
+/* The overlay uses an SVG filter + animated pseudo-layer */
+.transition-overlay::before{
+  content:"";
+  position:absolute;
+  inset:-20px;
+  background:
+    linear-gradient(135deg,
+      rgba(16,185,129,.22),
+      rgba(34,211,238,.18),
+      rgba(16,185,129,.14),
+      rgba(34,211,238,.10)
+    );
+  filter: url(#rippleFilter);
+  transform: translateZ(0);
+  opacity: .95;
 }
-@keyframes rippleIn{
-  0%{
-    width: 24px; height: 24px;
-    opacity: .0;
-    filter: blur(0px) saturate(1.3) brightness(1.0);
-  }
-  15%{
-    opacity: .9;
-  }
-  100%{
-    width: 220vmax; height: 220vmax;
-    opacity: 1;
-    filter: blur(18px) saturate(2.0) brightness(1.25);
-  }
+
+/* Extra moving shimmer bands (non-circular ripple lines) */
+.transition-overlay::after{
+  content:"";
+  position:absolute;
+  inset:-40px;
+  background:
+    repeating-linear-gradient(
+      115deg,
+      rgba(34,211,238,.18) 0px,
+      rgba(34,211,238,.18) 10px,
+      rgba(16,185,129,.10) 22px,
+      rgba(16,185,129,.00) 46px
+    );
+  mix-blend-mode: screen;
+  opacity: .55;
+  filter: url(#rippleFilter) blur(0.5px);
+  animation: bandsMove .9s linear infinite;
+}
+@keyframes bandsMove{
+  from{ transform: translate3d(-30px, -20px, 0); }
+  to{ transform: translate3d(30px, 20px, 0); }
 }
 </style>
+
+<!-- SVG filter for full-screen water ripples -->
+<svg width="0" height="0" style="position:absolute">
+  <filter id="rippleFilter">
+    <feTurbulence id="ripTurb"
+      type="fractalNoise"
+      baseFrequency="0.012 0.020"
+      numOctaves="2"
+      seed="2"
+      result="noise">
+    </feTurbulence>
+    <feDisplacementMap id="ripDisp"
+      in="SourceGraphic"
+      in2="noise"
+      scale="22"
+      xChannelSelector="R"
+      yChannelSelector="G" />
+  </filter>
+</svg>
 
 </body>
 </html>
