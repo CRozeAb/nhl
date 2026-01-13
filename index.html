@@ -16,7 +16,7 @@
 <div class="aurora-bg" aria-hidden="true"></div>
 <div class="aurora-noise" aria-hidden="true"></div>
 
-<!-- Random color deviation + blur overlay (no ripple) -->
+<!-- Blur-only transition overlay (no color change, no ripple) -->
 <div id="transitionOverlay" class="transition-overlay hidden" aria-hidden="true"></div>
 
 <!-- Blur target -->
@@ -176,70 +176,23 @@ let league = "nhl";
 let mode = "proj";
 let allData = [];
 
-/* ===== Random color deviation + blur during loading ===== */
-let colorTimer = null;
-
-function rand(min, max) {
-  return min + Math.random() * (max - min);
-}
-
-function applyRandomColorDeviation() {
-  const o = document.getElementById("transitionOverlay");
-
-  // Push positions around harder for more "randomness"
-  o.style.setProperty("--x1", rand(5, 95).toFixed(1) + "%");
-  o.style.setProperty("--y1", rand(5, 95).toFixed(1) + "%");
-  o.style.setProperty("--x2", rand(5, 95).toFixed(1) + "%");
-  o.style.setProperty("--y2", rand(5, 95).toFixed(1) + "%");
-  o.style.setProperty("--x3", rand(5, 95).toFixed(1) + "%");
-  o.style.setProperty("--y3", rand(5, 95).toFixed(1) + "%");
-  o.style.setProperty("--x4", rand(5, 95).toFixed(1) + "%");
-  o.style.setProperty("--y4", rand(5, 95).toFixed(1) + "%");
-
-  // Stronger alpha deviation
-  o.style.setProperty("--a1", rand(0.18, 0.55).toFixed(3));
-  o.style.setProperty("--a2", rand(0.16, 0.52).toFixed(3));
-  o.style.setProperty("--a3", rand(0.12, 0.46).toFixed(3));
-  o.style.setProperty("--a4", rand(0.10, 0.42).toFixed(3));
-
-  // Randomize hue + saturation + brightness a lot more
-  o.style.setProperty("--h", rand(-50, 80).toFixed(1) + "deg");
-  o.style.setProperty("--sat", rand(1.35, 2.15).toFixed(2));
-  o.style.setProperty("--bri", rand(1.05, 1.28).toFixed(2));
-
-  // Blur ramp + opacity flutter
-  o.style.setProperty("--blur", rand(10, 18).toFixed(0) + "px");
-  o.style.setProperty("--op", rand(0.70, 0.95).toFixed(2));
-}
-
+/* ===== Blur-only transition during loading ===== */
 function startTransition() {
   const o = document.getElementById("transitionOverlay");
   o.classList.remove("hidden");
   document.documentElement.classList.add("is-transitioning");
-
-  applyRandomColorDeviation();
-
-  // Faster updates = more random deviation
-  if (colorTimer) clearInterval(colorTimer);
-  colorTimer = setInterval(applyRandomColorDeviation, 70);
 }
 
 function endTransition() {
   const o = document.getElementById("transitionOverlay");
-
-  if (colorTimer) clearInterval(colorTimer);
-  colorTimer = null;
-
   o.classList.add("out");
 
   setTimeout(() => {
     o.classList.add("hidden");
     o.classList.remove("out");
     document.documentElement.classList.remove("is-transitioning");
-  }, 260);
+  }, 240);
 }
-
-/* ================= HOME ================= */
 
 async function goHome() {
   startTransition();
@@ -256,8 +209,6 @@ async function goHome() {
 
   endTransition();
 }
-
-/* ================= LOAD ================= */
 
 async function loadLeague(lg, md) {
   startTransition();
@@ -482,8 +433,37 @@ goHome();
 <style>
 /* Blur the whole app while transitioning */
 .is-transitioning #app{
-  filter: blur(12px) saturate(1.25) contrast(1.05);
+  filter: blur(12px) saturate(1.15);
   transform: translateZ(0);
+}
+
+/* Blur-only overlay */
+.transition-overlay{
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: opacity .18s ease;
+}
+.transition-overlay.out{
+  opacity: 0;
+  transition: opacity .22s ease;
+}
+
+/* We keep a very subtle dark veil (no color shifting) */
+.transition-overlay::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background: rgba(2,6,23,.35);
+}
+
+/* Make it visible during transition */
+.is-transitioning #transitionOverlay{
+  opacity: 1;
 }
 
 /* Buttons */
@@ -604,40 +584,6 @@ goHome();
 @keyframes pulseDot{
   0%,100%{ transform: scale(1); opacity: .9; }
   50%{ transform: scale(1.18); opacity: 1; }
-}
-
-/* Full-screen random color deviation overlay */
-.transition-overlay{
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  pointer-events: none;
-
-  opacity: var(--op, 0.85);
-  filter: hue-rotate(var(--h, 0deg)) saturate(var(--sat, 1.75)) brightness(var(--bri, 1.18));
-  backdrop-filter: blur(var(--blur, 14px)) saturate(1.25);
-  -webkit-backdrop-filter: blur(var(--blur, 14px)) saturate(1.25);
-
-  transition: opacity .18s ease;
-}
-.transition-overlay.out{
-  opacity: 0;
-  transition: opacity .26s ease;
-}
-.transition-overlay::before{
-  content:"";
-  position:absolute;
-  inset:-30px;
-
-  /* Randomized “patch” positions via CSS vars */
-  background:
-    radial-gradient(circle at var(--x1, 20%) var(--y1, 25%), rgba(16,185,129, var(--a1, .40)), transparent 55%),
-    radial-gradient(circle at var(--x2, 80%) var(--y2, 30%), rgba(34,211,238, var(--a2, .36)), transparent 58%),
-    radial-gradient(circle at var(--x3, 55%) var(--y3, 82%), rgba(16,185,129, var(--a3, .28)), transparent 62%),
-    radial-gradient(circle at var(--x4, 30%) var(--y4, 70%), rgba(34,211,238, var(--a4, .22)), transparent 62%);
-
-  mix-blend-mode: screen;
-  filter: blur(18px);
 }
 </style>
 
