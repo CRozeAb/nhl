@@ -16,7 +16,7 @@
 <div class="aurora-bg" aria-hidden="true"></div>
 <div class="aurora-noise" aria-hidden="true"></div>
 
-<!-- Random water-ripple + blur transition overlay -->
+<!-- Random color deviation + blur overlay (no ripple) -->
 <div id="transitionOverlay" class="transition-overlay hidden" aria-hidden="true"></div>
 
 <!-- Blur target -->
@@ -176,83 +176,73 @@ let league = "nhl";
 let mode = "proj";
 let allData = [];
 
-/* ===== Full-screen random ripple + blur during loading ===== */
-let rippleRAF = null;
-let rippleStart = 0;
-let lastSeedFlip = 0;
+/* ===== Random color deviation + blur during loading ===== */
+let colorTimer = null;
 
-function rand01(seed) {
-  // deterministic-ish random from time-based seed
-  const x = Math.sin(seed) * 10000;
-  return x - Math.floor(x);
+function rand(min, max) {
+  return min + Math.random() * (max - min);
 }
 
-function startWaterRipple() {
-  const overlay = document.getElementById("transitionOverlay");
-  overlay.classList.remove("hidden");
-  overlay.classList.add("play");
+function applyRandomColorDeviation() {
+  const o = document.getElementById("transitionOverlay");
 
+  // Push positions around harder for more "randomness"
+  o.style.setProperty("--x1", rand(5, 95).toFixed(1) + "%");
+  o.style.setProperty("--y1", rand(5, 95).toFixed(1) + "%");
+  o.style.setProperty("--x2", rand(5, 95).toFixed(1) + "%");
+  o.style.setProperty("--y2", rand(5, 95).toFixed(1) + "%");
+  o.style.setProperty("--x3", rand(5, 95).toFixed(1) + "%");
+  o.style.setProperty("--y3", rand(5, 95).toFixed(1) + "%");
+  o.style.setProperty("--x4", rand(5, 95).toFixed(1) + "%");
+  o.style.setProperty("--y4", rand(5, 95).toFixed(1) + "%");
+
+  // Stronger alpha deviation
+  o.style.setProperty("--a1", rand(0.18, 0.55).toFixed(3));
+  o.style.setProperty("--a2", rand(0.16, 0.52).toFixed(3));
+  o.style.setProperty("--a3", rand(0.12, 0.46).toFixed(3));
+  o.style.setProperty("--a4", rand(0.10, 0.42).toFixed(3));
+
+  // Randomize hue + saturation + brightness a lot more
+  o.style.setProperty("--h", rand(-50, 80).toFixed(1) + "deg");
+  o.style.setProperty("--sat", rand(1.35, 2.15).toFixed(2));
+  o.style.setProperty("--bri", rand(1.05, 1.28).toFixed(2));
+
+  // Blur ramp + opacity flutter
+  o.style.setProperty("--blur", rand(10, 18).toFixed(0) + "px");
+  o.style.setProperty("--op", rand(0.70, 0.95).toFixed(2));
+}
+
+function startTransition() {
+  const o = document.getElementById("transitionOverlay");
+  o.classList.remove("hidden");
   document.documentElement.classList.add("is-transitioning");
 
-  rippleStart = performance.now();
-  lastSeedFlip = rippleStart;
+  applyRandomColorDeviation();
 
-  const turb = document.getElementById("ripTurb");
-  const disp = document.getElementById("ripDisp");
-
-  const tick = (t) => {
-    const dt = (t - rippleStart) / 1000;
-
-    // Randomize turbulence frequently (NOT smooth waves)
-    // Jitter baseFrequency every frame within a range (stable enough to look like water distortion)
-    const r1 = rand01((t * 0.001) + 1.234);
-    const r2 = rand01((t * 0.001) + 9.876);
-    const r3 = rand01((t * 0.001) + 4.321);
-
-    const bfX = 0.008 + r1 * 0.012; // 0.008..0.020
-    const bfY = 0.012 + r2 * 0.016; // 0.012..0.028
-    turb.setAttribute("baseFrequency", `${bfX.toFixed(4)} ${bfY.toFixed(4)}`);
-
-    // Flip seed occasionally to break any repeating pattern (adds randomness)
-    if (t - lastSeedFlip > 120) {
-      const seed = 1 + Math.floor(r3 * 999);
-      turb.setAttribute("seed", String(seed));
-      lastSeedFlip = t;
-    }
-
-    // Random displacement strength (kept within a good range)
-    const scale = 14 + rand01((t * 0.002) + 7.777) * 20; // 14..34
-    disp.setAttribute("scale", scale.toFixed(1));
-
-    // Random intensity pulse (controls overlay brightness/color)
-    const intensity = 0.55 + rand01((t * 0.003) + 2.222) * 0.35; // 0.55..0.90
-    overlay.style.setProperty("--int", intensity.toFixed(3));
-
-    rippleRAF = requestAnimationFrame(tick);
-  };
-
-  rippleRAF = requestAnimationFrame(tick);
+  // Faster updates = more random deviation
+  if (colorTimer) clearInterval(colorTimer);
+  colorTimer = setInterval(applyRandomColorDeviation, 70);
 }
 
-function stopWaterRipple() {
-  const overlay = document.getElementById("transitionOverlay");
-  overlay.classList.remove("play");
-  overlay.classList.add("out");
+function endTransition() {
+  const o = document.getElementById("transitionOverlay");
 
-  if (rippleRAF) cancelAnimationFrame(rippleRAF);
-  rippleRAF = null;
+  if (colorTimer) clearInterval(colorTimer);
+  colorTimer = null;
+
+  o.classList.add("out");
 
   setTimeout(() => {
-    overlay.classList.add("hidden");
-    overlay.classList.remove("out");
+    o.classList.add("hidden");
+    o.classList.remove("out");
     document.documentElement.classList.remove("is-transitioning");
-  }, 320);
+  }, 260);
 }
 
 /* ================= HOME ================= */
 
 async function goHome() {
-  startWaterRipple();
+  startTransition();
 
   mode = "home";
   pageTitle.textContent = "Main Menu";
@@ -264,13 +254,13 @@ async function goHome() {
   teamView.classList.add("hidden");
   loading.classList.add("hidden");
 
-  stopWaterRipple();
+  endTransition();
 }
 
 /* ================= LOAD ================= */
 
 async function loadLeague(lg, md) {
-  startWaterRipple();
+  startTransition();
 
   league = lg;
   mode = md;
@@ -302,7 +292,7 @@ async function loadLeague(lg, md) {
   else if (md === "lineup") computeLineup();
   else computeBestTeam();
 
-  stopWaterRipple();
+  endTransition();
 }
 
 /* ================= TABLE ================= */
@@ -486,14 +476,13 @@ function computeBestTeam() {
 }
 
 playerSearch.addEventListener("input", renderTable);
-
 goHome();
 </script>
 
 <style>
 /* Blur the whole app while transitioning */
 .is-transitioning #app{
-  filter: blur(10px) saturate(1.15);
+  filter: blur(12px) saturate(1.25) contrast(1.05);
   transform: translateZ(0);
 }
 
@@ -617,68 +606,40 @@ goHome();
   50%{ transform: scale(1.18); opacity: 1; }
 }
 
-/* Full-screen RANDOM ripple overlay */
+/* Full-screen random color deviation overlay */
 .transition-overlay{
-  --int: 0.72;
   position: fixed;
   inset: 0;
   z-index: 9999;
   pointer-events: none;
-  opacity: 0;
-  transition: opacity .14s ease;
-}
-.transition-overlay.play{
-  opacity: 1;
+
+  opacity: var(--op, 0.85);
+  filter: hue-rotate(var(--h, 0deg)) saturate(var(--sat, 1.75)) brightness(var(--bri, 1.18));
+  backdrop-filter: blur(var(--blur, 14px)) saturate(1.25);
+  -webkit-backdrop-filter: blur(var(--blur, 14px)) saturate(1.25);
+
+  transition: opacity .18s ease;
 }
 .transition-overlay.out{
   opacity: 0;
-  transition: opacity .32s ease;
+  transition: opacity .26s ease;
 }
-
 .transition-overlay::before{
   content:"";
   position:absolute;
-  inset:-24px;
+  inset:-30px;
 
-  /* base wash */
+  /* Randomized “patch” positions via CSS vars */
   background:
-    linear-gradient(135deg,
-      rgba(16,185,129, calc(.22 * var(--int))),
-      rgba(34,211,238, calc(.18 * var(--int))),
-      rgba(16,185,129, calc(.14 * var(--int))),
-      rgba(34,211,238, calc(.10 * var(--int)))
-    );
+    radial-gradient(circle at var(--x1, 20%) var(--y1, 25%), rgba(16,185,129, var(--a1, .40)), transparent 55%),
+    radial-gradient(circle at var(--x2, 80%) var(--y2, 30%), rgba(34,211,238, var(--a2, .36)), transparent 58%),
+    radial-gradient(circle at var(--x3, 55%) var(--y3, 82%), rgba(16,185,129, var(--a3, .28)), transparent 62%),
+    radial-gradient(circle at var(--x4, 30%) var(--y4, 70%), rgba(34,211,238, var(--a4, .22)), transparent 62%);
 
-  /* IMPORTANT: this makes it look like random water distortion */
-  filter: url(#rippleFilter) blur(0.6px) saturate(1.65) brightness(1.15);
-  opacity: 1;
-}
-
-/* Add extra blur on the overlay itself (over the whole screen) */
-.transition-overlay{
-  backdrop-filter: blur(12px) saturate(1.3);
-  -webkit-backdrop-filter: blur(12px) saturate(1.3);
+  mix-blend-mode: screen;
+  filter: blur(18px);
 }
 </style>
-
-<!-- SVG filter for random full-screen distortion -->
-<svg width="0" height="0" style="position:absolute">
-  <filter id="rippleFilter">
-    <feTurbulence id="ripTurb"
-      type="fractalNoise"
-      baseFrequency="0.012 0.020"
-      numOctaves="2"
-      seed="2"
-      result="noise">
-    </feTurbulence>
-    <feDisplacementMap id="ripDisp"
-      in="SourceGraphic"
-      in2="noise"
-      scale="22"
-      xChannelSelector="R"
-      yChannelSelector="G" />
-  </filter>
-</svg>
 
 </body>
 </html>
