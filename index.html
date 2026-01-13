@@ -22,14 +22,18 @@
     <div class="flex gap-2 flex-wrap">
       <button onclick="loadLeague('nhl','proj')" class="btn">NHL Projections</button>
       <button onclick="loadLeague('nhl','lineup')" class="btn">NHL Draft</button>
+      <button onclick="loadLeague('nhl','team')" class="btn">NHL Best Team</button>
+
       <button onclick="loadLeague('nba','proj')" class="btn">NBA Projections</button>
       <button onclick="loadLeague('nba','lineup')" class="btn">NBA Draft</button>
+      <button onclick="loadLeague('nba','team')" class="btn">NBA Best Team</button>
+
       <button onclick="toggleTheme()" class="btn">🌙 / ☀️</button>
     </div>
   </div>
 
   <!-- SEARCH -->
-  <div class="mb-4">
+  <div id="searchWrap" class="mb-4">
     <input id="playerSearch" placeholder="Search player"
       class="px-3 py-2 rounded border w-full max-w-sm dark:bg-slate-800">
   </div>
@@ -65,6 +69,42 @@
     </table>
   </div>
 
+  <!-- BEST TEAM -->
+  <div id="teamView" class="hidden mt-6">
+    <div class="flex flex-wrap items-end justify-between gap-2 mb-2">
+      <h2 class="text-2xl font-bold">Highest Projected Team</h2>
+      <div class="text-sm opacity-80">
+        Team: <span id="bestTeamName" class="font-bold"></span>
+      </div>
+    </div>
+
+    <div class="text-sm opacity-80 mb-3">
+      Method: For each team, take the top 6 players by <span class="font-bold">PB3</span>,
+      then find the best 5-player lineup from those 6 (same scoring as Draft). Highest total wins.
+    </div>
+
+    <table class="w-full bg-white dark:bg-slate-800 rounded-lg">
+      <thead class="bg-slate-200 dark:bg-slate-700">
+        <tr>
+          <th class="p-2 text-left">Player</th>
+          <th class="p-2 text-center">Team</th>
+          <th class="p-2 text-right">PB3</th>
+          <th class="p-2 text-right">Proj</th>
+          <th class="p-2 text-right">Boost</th>
+          <th class="p-2 text-right">Mult</th>
+          <th class="p-2 text-right">Score</th>
+        </tr>
+      </thead>
+      <tbody id="teamBody"></tbody>
+      <tfoot>
+        <tr class="font-bold border-t">
+          <td class="p-2">Total</td>
+          <td colspan="6" id="teamTotal" class="p-2 text-right"></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
 </div>
 
 <script>
@@ -84,10 +124,17 @@ async function loadLeague(lg, md) {
   mode = md;
 
   pageTitle.textContent =
-    lg.toUpperCase() + (md === "proj" ? " Projections" : " Today’s Draft");
+    lg.toUpperCase() + (
+      md === "proj" ? " Projections" :
+      md === "lineup" ? " Today’s Draft" :
+      " Best Team"
+    );
 
+  // Toggle views
   projectionView.classList.toggle("hidden", md !== "proj");
   lineupView.classList.toggle("hidden", md !== "lineup");
+  teamView.classList.toggle("hidden", md !== "team");
+  searchWrap.classList.toggle("hidden", md !== "proj");
 
   loading.classList.remove("hidden");
 
@@ -97,7 +144,8 @@ async function loadLeague(lg, md) {
   loading.classList.add("hidden");
 
   if (md === "proj") renderTable();
-  else computeLineup();
+  else if (md === "lineup") computeLineup();
+  else computeBestTeam();
 }
 
 /* ================= TABLE ================= */
@@ -105,7 +153,7 @@ async function loadLeague(lg, md) {
 function renderTable() {
   const search = playerSearch.value.toLowerCase();
   const rows = allData.filter(p =>
-    !search || p.player.toLowerCase().includes(search)
+    !search || (p.player || "").toLowerCase().includes(search)
   );
 
   let html = `
@@ -131,67 +179,88 @@ function renderTable() {
     </thead><tbody>`;
 
   rows.forEach(p => {
+    const team = (p.team ?? "").toString();
     html += `
     <tr class="border-t">
-      <td class="p-2">${p.player}</td>
+      <td class="p-2">${p.player ?? ""}</td>
       ${league === "nhl" ? `
-        <td class="p-2 text-center">${p.team}</td>
-        <td class="p-2 text-right">${p.goals.toFixed(2)}</td>
-        <td class="p-2 text-right">${p.assists.toFixed(2)}</td>
-        <td class="p-2 text-right">${p.points.toFixed(2)}</td>
-        <td class="p-2 text-right">${p.shots.toFixed(1)}</td>
-        <td class="p-2 text-right">${p.blocks.toFixed(1)}</td>` : ``}
-      <td class="p-2 text-right">${p.projection.toFixed(2)}</td>
-      <td class="p-2 text-right text-green-400">${p.boost.toFixed(1)}</td>
-      <td class="p-2 text-right">${p.b1.toFixed(2)}</td>
-      <td class="p-2 text-right">${p.b2.toFixed(2)}</td>
-      <td class="p-2 text-right">${p.b3.toFixed(2)}</td>
-      <td class="p-2 text-right">${p.b4.toFixed(2)}</td>
-      <td class="p-2 text-right">${p.b5.toFixed(2)}</td>
+        <td class="p-2 text-center">${team}</td>
+        <td class="p-2 text-right">${Number(p.goals ?? 0).toFixed(2)}</td>
+        <td class="p-2 text-right">${Number(p.assists ?? 0).toFixed(2)}</td>
+        <td class="p-2 text-right">${Number(p.points ?? 0).toFixed(2)}</td>
+        <td class="p-2 text-right">${Number(p.shots ?? 0).toFixed(1)}</td>
+        <td class="p-2 text-right">${Number(p.blocks ?? 0).toFixed(1)}</td>` : ``}
+      <td class="p-2 text-right">${Number(p.projection ?? 0).toFixed(2)}</td>
+      <td class="p-2 text-right text-green-400">${Number(p.boost ?? 0).toFixed(1)}</td>
+      <td class="p-2 text-right">${Number(p.b1 ?? 0).toFixed(2)}</td>
+      <td class="p-2 text-right">${Number(p.b2 ?? 0).toFixed(2)}</td>
+      <td class="p-2 text-right">${Number(p.b3 ?? 0).toFixed(2)}</td>
+      <td class="p-2 text-right">${Number(p.b4 ?? 0).toFixed(2)}</td>
+      <td class="p-2 text-right">${Number(p.b5 ?? 0).toFixed(2)}</td>
     </tr>`;
   });
 
   projectionView.innerHTML = html + "</tbody></table>";
 }
 
-/* ================= LINEUP ================= */
+/* ================= SHARED LINEUP SOLVER ================= */
+
+function computeBestLineupFromPool(pool) {
+  const mults = [2, 1.8, 1.6, 1.4, 1.2];
+  if (!Array.isArray(pool) || pool.length < 5) return null;
+
+  // Build all permutations of multipliers (5! = 120)
+  const perms = [];
+  (function permute(arr, l) {
+    if (l === arr.length) return perms.push(arr.slice());
+    for (let i = l; i < arr.length; i++) {
+      [arr[l], arr[i]] = [arr[i], arr[l]];
+      permute(arr, l + 1);
+      [arr[l], arr[i]] = [arr[i], arr[l]];
+    }
+  })(mults.slice(), 0);
+
+  let best = { score: -1, players: [], mults: [] };
+
+  function scoreLineup(players5) {
+    perms.forEach(m => {
+      let s = 0;
+      for (let i = 0; i < 5; i++) {
+        const proj = Number(players5[i].projection ?? 0);
+        const boost = Number(players5[i].boost ?? 0);
+        s += proj * (m[i] + boost);
+      }
+      if (s > best.score) {
+        best = { score: s, players: players5.slice(), mults: m.slice() };
+      }
+    });
+  }
+
+  // Choose 5 from pool (pool sizes: 6 for teams, 20 for draft pool)
+  function choose(start, picked) {
+    if (picked.length === 5) return scoreLineup(picked);
+    for (let i = start; i < pool.length; i++) {
+      choose(i + 1, picked.concat(pool[i]));
+    }
+  }
+
+  choose(0, []);
+  return best;
+}
+
+/* ================= LINEUP (DRAFT) ================= */
 
 function computeLineup() {
-  const mults = [2, 1.8, 1.6, 1.4, 1.2];
-
   const pool = [...allData]
-    .sort((a,b) => b.b3 - a.b3)
-    .slice(0,20);
+    .sort((a,b) => Number(b.b3 ?? 0) - Number(a.b3 ?? 0))
+    .slice(0, 20);
 
-  let best = { score: -1 };
-
-  function permute(arr, l, res) {
-    if (l === arr.length) return res.push(arr.slice());
-    for (let i=l;i<arr.length;i++){
-      [arr[l],arr[i]]=[arr[i],arr[l]];
-      permute(arr,l+1,res);
-      [arr[l],arr[i]]=[arr[i],arr[l]];
-    }
+  const best = computeBestLineupFromPool(pool);
+  if (!best) {
+    lineupBody.innerHTML = `<tr><td class="p-2" colspan="5">Not enough players to compute lineup.</td></tr>`;
+    lineupTotal.textContent = "0.00";
+    return;
   }
-
-  const perms=[]; permute(mults.slice(),0,perms);
-
-  function choose(start, picked) {
-    if (picked.length===5) {
-      perms.forEach(m=>{
-        let s=0;
-        for (let i=0;i<5;i++)
-          s+=picked[i].projection*(m[i]+picked[i].boost);
-        if (s>best.score)
-          best={score:s,players:[...picked],mults:[...m]};
-      });
-      return;
-    }
-    for (let i=start;i<pool.length;i++)
-      choose(i+1,[...picked,pool[i]]);
-  }
-
-  choose(0,[]);
   renderLineup(best);
 }
 
@@ -199,23 +268,87 @@ function renderLineup(best) {
   lineupBody.innerHTML = "";
 
   const rows = best.players.map((p,i)=>({
-    p, m:best.mults[i],
-    s:p.projection*(best.mults[i]+p.boost)
+    p, m: best.mults[i],
+    s: Number(p.projection ?? 0) * (best.mults[i] + Number(p.boost ?? 0))
   })).sort((a,b)=>b.m-a.m);
 
   rows.forEach(r=>{
     lineupBody.insertAdjacentHTML("beforeend",`
       <tr class="border-t">
-        <td class="p-2">${r.p.player}</td>
-        <td class="p-2 text-right">${r.p.projection.toFixed(2)}</td>
-        <td class="p-2 text-right text-green-400">${r.p.boost.toFixed(1)}</td>
-        <td class="p-2 text-right">${r.m.toFixed(1)}</td>
-        <td class="p-2 text-right font-bold">${r.s.toFixed(2)}</td>
+        <td class="p-2">${r.p.player ?? ""}</td>
+        <td class="p-2 text-right">${Number(r.p.projection ?? 0).toFixed(2)}</td>
+        <td class="p-2 text-right text-green-400">${Number(r.p.boost ?? 0).toFixed(1)}</td>
+        <td class="p-2 text-right">${Number(r.m ?? 0).toFixed(1)}</td>
+        <td class="p-2 text-right font-bold">${Number(r.s ?? 0).toFixed(2)}</td>
       </tr>
     `);
   });
 
-  lineupTotal.textContent = best.score.toFixed(2);
+  lineupTotal.textContent = Number(best.score ?? 0).toFixed(2);
+}
+
+/* ================= BEST TEAM ================= */
+
+function computeBestTeam() {
+  // Group by team
+  const byTeam = new Map();
+  allData.forEach(p => {
+    const t = (p.team ?? "UNK").toString().trim() || "UNK";
+    if (!byTeam.has(t)) byTeam.set(t, []);
+    byTeam.get(t).push(p);
+  });
+
+  let bestTeam = null;
+
+  for (const [t, players] of byTeam.entries()) {
+    // top 6 by PB3 for this team
+    const top6 = [...players]
+      .sort((a,b) => Number(b.b3 ?? 0) - Number(a.b3 ?? 0))
+      .slice(0, 6);
+
+    const best = computeBestLineupFromPool(top6);
+    if (!best) continue;
+
+    if (!bestTeam || best.score > bestTeam.best.score) {
+      bestTeam = { team: t, best, pool: top6 };
+    }
+  }
+
+  if (!bestTeam) {
+    bestTeamName.textContent = "N/A";
+    teamBody.innerHTML = `<tr><td class="p-2" colspan="7">Not enough team data to compute.</td></tr>`;
+    teamTotal.textContent = "0.00";
+    return;
+  }
+
+  renderBestTeam(bestTeam);
+}
+
+function renderBestTeam(bestTeam) {
+  bestTeamName.textContent = bestTeam.team;
+  teamBody.innerHTML = "";
+
+  const rows = bestTeam.best.players.map((p,i)=>({
+    p,
+    m: bestTeam.best.mults[i],
+    s: Number(p.projection ?? 0) * (bestTeam.best.mults[i] + Number(p.boost ?? 0))
+  })).sort((a,b)=>b.m-a.m);
+
+  rows.forEach(r=>{
+    teamBody.insertAdjacentHTML("beforeend",`
+      <tr class="border-t">
+        <td class="p-2">${r.p.player ?? ""}</td>
+        <td class="p-2 text-center">${(r.p.team ?? "UNK")}</td>
+        <td class="p-2 text-right">${Number(r.p.b3 ?? 0).toFixed(2)}</td>
+        <td class="p-2 text-right">${Number(r.p.projection ?? 0).toFixed(2)}</td>
+        <td class="p-2 text-right text-green-400">${Number(r.p.boost ?? 0).toFixed(1)}</td>
+        <td class="p-2 text-right">${Number(r.m ?? 0).toFixed(1)}</td>
+        <td class="p-2 text-right font-bold">${Number(r.s ?? 0).toFixed(2)}</td>
+      </tr>
+    `);
+  });
+
+  teamTotal.textContent = Number(bestTeam.best.score ?? 0).toFixed(2);
 }
 
 /* ================= UTILS ================= */
