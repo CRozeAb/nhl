@@ -16,152 +16,156 @@
 <div class="aurora-bg" aria-hidden="true"></div>
 <div class="aurora-noise" aria-hidden="true"></div>
 
-<!-- Water-ripple transition overlay -->
+<!-- Random water-ripple + blur transition overlay -->
 <div id="transitionOverlay" class="transition-overlay hidden" aria-hidden="true"></div>
 
-<div class="max-w-7xl mx-auto p-4 relative z-10">
+<!-- Blur target -->
+<div id="app" class="relative z-10">
+  <div class="max-w-7xl mx-auto p-4">
 
-  <div class="flex flex-wrap gap-3 justify-between items-center mb-4">
-    <div class="flex items-center gap-3">
-      <div class="brand-badge">
-        <span class="brand-dot"></span>
-        <span class="font-bold tracking-wide">Projections Hub</span>
+    <div class="flex flex-wrap gap-3 justify-between items-center mb-4">
+      <div class="flex items-center gap-3">
+        <div class="brand-badge">
+          <span class="brand-dot"></span>
+          <span class="font-bold tracking-wide">Projections Hub</span>
+        </div>
+        <h1 id="pageTitle" class="text-2xl md:text-3xl font-bold">Main Menu</h1>
       </div>
-      <h1 id="pageTitle" class="text-2xl md:text-3xl font-bold">Main Menu</h1>
+
+      <div class="flex gap-2 flex-wrap">
+        <button onclick="goHome()" class="btn btn-soft">Home</button>
+      </div>
     </div>
 
-    <div class="flex gap-2 flex-wrap">
-      <button onclick="goHome()" class="btn btn-soft">Home</button>
-    </div>
-  </div>
+    <div class="grid grid-cols-1 md:grid-cols-[260px,1fr] gap-4">
 
-  <div class="grid grid-cols-1 md:grid-cols-[260px,1fr] gap-4">
-
-    <aside class="glass-card p-3 md:p-4">
-      <div class="mb-3">
-        <div class="text-xs uppercase tracking-widest opacity-70 mb-2">Navigation</div>
-      </div>
-
-      <div class="flex flex-col gap-2">
-        <button onclick="loadLeague('nhl','proj')" class="nav-btn">
-          <span class="nav-icon">🏒</span>
-          <span class="flex-1 text-left"><div class="font-semibold">NHL Projections</div></span>
-          <span class="nav-arrow">→</span>
-        </button>
-
-        <button onclick="loadLeague('nhl','lineup')" class="nav-btn">
-          <span class="nav-icon">📋</span>
-          <span class="flex-1 text-left"><div class="font-semibold">NHL Draft</div></span>
-          <span class="nav-arrow">→</span>
-        </button>
-
-        <button onclick="loadLeague('nhl','team')" class="nav-btn">
-          <span class="nav-icon">🏆</span>
-          <span class="flex-1 text-left"><div class="font-semibold">NHL Best Team</div></span>
-          <span class="nav-arrow">→</span>
-        </button>
-
-        <div class="h-px my-2 bg-white/10"></div>
-
-        <button onclick="loadLeague('nba','proj')" class="nav-btn">
-          <span class="nav-icon">🏀</span>
-          <span class="flex-1 text-left"><div class="font-semibold">NBA Projections</div></span>
-          <span class="nav-arrow">→</span>
-        </button>
-
-        <button onclick="loadLeague('nba','lineup')" class="nav-btn">
-          <span class="nav-icon">📋</span>
-          <span class="flex-1 text-left"><div class="font-semibold">NBA Draft</div></span>
-          <span class="nav-arrow">→</span>
-        </button>
-      </div>
-    </aside>
-
-    <main class="glass-card p-3 md:p-4 min-h-[420px]">
-      <div id="homeView" class="fade-in">
-        <div class="hero-card p-6 md:p-8">
-          <div class="hero-glow" aria-hidden="true"></div>
-          <div class="relative z-10">
-            <div class="text-xs uppercase tracking-[0.25em] opacity-70 mb-2">Main Menu</div>
-            <div class="text-2xl md:text-3xl font-extrabold leading-tight">Choose a tab to load</div>
-          </div>
+      <aside class="glass-card p-3 md:p-4">
+        <div class="mb-3">
+          <div class="text-xs uppercase tracking-widest opacity-70 mb-2">Navigation</div>
         </div>
-      </div>
 
-      <div id="searchWrap" class="mb-4 hidden fade-in">
-        <input id="playerSearch" placeholder="Search player"
-          class="px-3 py-2 rounded border w-full max-w-sm bg-white/5 backdrop-blur-md border-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-200/20">
-      </div>
+        <div class="flex flex-col gap-2">
+          <button onclick="loadLeague('nhl','proj')" class="nav-btn">
+            <span class="nav-icon">🏒</span>
+            <span class="flex-1 text-left"><div class="font-semibold">NHL Projections</div></span>
+            <span class="nav-arrow">→</span>
+          </button>
 
-      <div id="loading" class="hidden text-center py-10 text-lg fade-in">
-        <div class="spinner mx-auto mb-3"></div>
-        Loading data...
-      </div>
+          <button onclick="loadLeague('nhl','lineup')" class="nav-btn">
+            <span class="nav-icon">📋</span>
+            <span class="flex-1 text-left"><div class="font-semibold">NHL Draft</div></span>
+            <span class="nav-arrow">→</span>
+          </button>
 
-      <div id="projectionView" class="overflow-x-auto rounded-lg hidden fade-in"></div>
+          <button onclick="loadLeague('nhl','team')" class="nav-btn">
+            <span class="nav-icon">🏆</span>
+            <span class="flex-1 text-left"><div class="font-semibold">NHL Best Team</div></span>
+            <span class="nav-arrow">→</span>
+          </button>
 
-      <div id="lineupView" class="hidden mt-2 fade-in">
-        <h2 class="text-2xl font-bold mb-2">Optimal Lineup</h2>
-        <div class="table-wrap">
-          <table class="w-full rounded-lg overflow-hidden">
-            <thead class="bg-white/10">
-              <tr>
-                <th class="p-2 text-left">Player</th>
-                <th class="p-2 text-right">Proj</th>
-                <th class="p-2 text-right">Boost</th>
-                <th class="p-2 text-right">Mult</th>
-                <th class="p-2 text-right">Score</th>
-              </tr>
-            </thead>
-            <tbody id="lineupBody" class="bg-white/5"></tbody>
-            <tfoot>
-              <tr class="font-bold border-t border-white/10">
-                <td class="p-2">Total</td>
-                <td colspan="4" id="lineupTotal" class="p-2 text-right"></td>
-              </tr>
-            </tfoot>
-          </table>
+          <div class="h-px my-2 bg-white/10"></div>
+
+          <button onclick="loadLeague('nba','proj')" class="nav-btn">
+            <span class="nav-icon">🏀</span>
+            <span class="flex-1 text-left"><div class="font-semibold">NBA Projections</div></span>
+            <span class="nav-arrow">→</span>
+          </button>
+
+          <button onclick="loadLeague('nba','lineup')" class="nav-btn">
+            <span class="nav-icon">📋</span>
+            <span class="flex-1 text-left"><div class="font-semibold">NBA Draft</div></span>
+            <span class="nav-arrow">→</span>
+          </button>
         </div>
-      </div>
+      </aside>
 
-      <div id="teamView" class="hidden mt-2 fade-in">
-        <div class="flex flex-wrap items-end justify-between gap-2 mb-2">
-          <h2 class="text-2xl font-bold">Highest Projected Team</h2>
-          <div class="text-sm opacity-80">
-            Team: <span id="bestTeamName" class="font-bold"></span>
+      <main class="glass-card p-3 md:p-4 min-h-[420px]">
+        <div id="homeView" class="fade-in">
+          <div class="hero-card p-6 md:p-8">
+            <div class="hero-glow" aria-hidden="true"></div>
+            <div class="relative z-10">
+              <div class="text-xs uppercase tracking-[0.25em] opacity-70 mb-2">Main Menu</div>
+              <div class="text-2xl md:text-3xl font-extrabold leading-tight">Choose a tab to load</div>
+            </div>
           </div>
         </div>
 
-        <div class="table-wrap">
-          <table class="w-full rounded-lg overflow-hidden">
-            <thead class="bg-white/10">
-              <tr>
-                <th class="p-2 text-left">Player</th>
-                <th class="p-2 text-center">Team</th>
-                <th class="p-2 text-right">PB3</th>
-                <th class="p-2 text-right">Proj</th>
-                <th class="p-2 text-right">Boost</th>
-                <th class="p-2 text-right">Mult</th>
-                <th class="p-2 text-right">Score</th>
-              </tr>
-            </thead>
-            <tbody id="teamBody" class="bg-white/5"></tbody>
-            <tfoot>
-              <tr class="font-bold border-t border-white/10">
-                <td class="p-2">Total</td>
-                <td colspan="6" id="teamTotal" class="p-2 text-right"></td>
-              </tr>
-            </tfoot>
-          </table>
+        <div id="searchWrap" class="mb-4 hidden fade-in">
+          <input id="playerSearch" placeholder="Search player"
+            class="px-3 py-2 rounded border w-full max-w-sm bg-white/5 backdrop-blur-md border-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-200/20">
         </div>
-      </div>
-    </main>
-  </div>
 
-  <div class="mt-4 text-xs opacity-70 flex items-center justify-end">
-    <div class="opacity-70">Created by croze</div>
-  </div>
+        <div id="loading" class="hidden text-center py-10 text-lg fade-in">
+          <div class="spinner mx-auto mb-3"></div>
+          Loading data...
+        </div>
 
+        <div id="projectionView" class="overflow-x-auto rounded-lg hidden fade-in"></div>
+
+        <div id="lineupView" class="hidden mt-2 fade-in">
+          <h2 class="text-2xl font-bold mb-2">Optimal Lineup</h2>
+          <div class="table-wrap">
+            <table class="w-full rounded-lg overflow-hidden">
+              <thead class="bg-white/10">
+                <tr>
+                  <th class="p-2 text-left">Player</th>
+                  <th class="p-2 text-right">Proj</th>
+                  <th class="p-2 text-right">Boost</th>
+                  <th class="p-2 text-right">Mult</th>
+                  <th class="p-2 text-right">Score</th>
+                </tr>
+              </thead>
+              <tbody id="lineupBody" class="bg-white/5"></tbody>
+              <tfoot>
+                <tr class="font-bold border-t border-white/10">
+                  <td class="p-2">Total</td>
+                  <td colspan="4" id="lineupTotal" class="p-2 text-right"></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <div id="teamView" class="hidden mt-2 fade-in">
+          <div class="flex flex-wrap items-end justify-between gap-2 mb-2">
+            <h2 class="text-2xl font-bold">Highest Projected Team</h2>
+            <div class="text-sm opacity-80">
+              Team: <span id="bestTeamName" class="font-bold"></span>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table class="w-full rounded-lg overflow-hidden">
+              <thead class="bg-white/10">
+                <tr>
+                  <th class="p-2 text-left">Player</th>
+                  <th class="p-2 text-center">Team</th>
+                  <th class="p-2 text-right">PB3</th>
+                  <th class="p-2 text-right">Proj</th>
+                  <th class="p-2 text-right">Boost</th>
+                  <th class="p-2 text-right">Mult</th>
+                  <th class="p-2 text-right">Score</th>
+                </tr>
+              </thead>
+              <tbody id="teamBody" class="bg-white/5"></tbody>
+              <tfoot>
+                <tr class="font-bold border-t border-white/10">
+                  <td class="p-2">Total</td>
+                  <td colspan="6" id="teamTotal" class="p-2 text-right"></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+      </main>
+    </div>
+
+    <div class="mt-4 text-xs opacity-70 flex items-center justify-end">
+      <div class="opacity-70">Created by croze</div>
+    </div>
+
+  </div>
 </div>
 
 <script>
@@ -172,31 +176,57 @@ let league = "nhl";
 let mode = "proj";
 let allData = [];
 
-/* ===== Water ripple overlay control =====
-   Uses a full-screen SVG displacement filter to create non-circular,
-   whole-screen water ripples while loading. */
+/* ===== Full-screen random ripple + blur during loading ===== */
 let rippleRAF = null;
 let rippleStart = 0;
+let lastSeedFlip = 0;
+
+function rand01(seed) {
+  // deterministic-ish random from time-based seed
+  const x = Math.sin(seed) * 10000;
+  return x - Math.floor(x);
+}
 
 function startWaterRipple() {
   const overlay = document.getElementById("transitionOverlay");
   overlay.classList.remove("hidden");
   overlay.classList.add("play");
 
+  document.documentElement.classList.add("is-transitioning");
+
   rippleStart = performance.now();
+  lastSeedFlip = rippleStart;
+
   const turb = document.getElementById("ripTurb");
   const disp = document.getElementById("ripDisp");
 
   const tick = (t) => {
     const dt = (t - rippleStart) / 1000;
-    // animate turbulence "seed-like" effect by shifting baseFrequency slightly
-    const bfX = 0.010 + 0.004 * Math.sin(dt * 1.3);
-    const bfY = 0.020 + 0.006 * Math.cos(dt * 1.1);
+
+    // Randomize turbulence frequently (NOT smooth waves)
+    // Jitter baseFrequency every frame within a range (stable enough to look like water distortion)
+    const r1 = rand01((t * 0.001) + 1.234);
+    const r2 = rand01((t * 0.001) + 9.876);
+    const r3 = rand01((t * 0.001) + 4.321);
+
+    const bfX = 0.008 + r1 * 0.012; // 0.008..0.020
+    const bfY = 0.012 + r2 * 0.016; // 0.012..0.028
     turb.setAttribute("baseFrequency", `${bfX.toFixed(4)} ${bfY.toFixed(4)}`);
 
-    // animate displacement strength up/down (color intensifies via CSS)
-    const scale = 18 + 10 * (0.5 + 0.5 * Math.sin(dt * 2.0));
+    // Flip seed occasionally to break any repeating pattern (adds randomness)
+    if (t - lastSeedFlip > 120) {
+      const seed = 1 + Math.floor(r3 * 999);
+      turb.setAttribute("seed", String(seed));
+      lastSeedFlip = t;
+    }
+
+    // Random displacement strength (kept within a good range)
+    const scale = 14 + rand01((t * 0.002) + 7.777) * 20; // 14..34
     disp.setAttribute("scale", scale.toFixed(1));
+
+    // Random intensity pulse (controls overlay brightness/color)
+    const intensity = 0.55 + rand01((t * 0.003) + 2.222) * 0.35; // 0.55..0.90
+    overlay.style.setProperty("--int", intensity.toFixed(3));
 
     rippleRAF = requestAnimationFrame(tick);
   };
@@ -215,8 +245,11 @@ function stopWaterRipple() {
   setTimeout(() => {
     overlay.classList.add("hidden");
     overlay.classList.remove("out");
+    document.documentElement.classList.remove("is-transitioning");
   }, 320);
 }
+
+/* ================= HOME ================= */
 
 async function goHome() {
   startWaterRipple();
@@ -233,6 +266,8 @@ async function goHome() {
 
   stopWaterRipple();
 }
+
+/* ================= LOAD ================= */
 
 async function loadLeague(lg, md) {
   startWaterRipple();
@@ -269,6 +304,8 @@ async function loadLeague(lg, md) {
 
   stopWaterRipple();
 }
+
+/* ================= TABLE ================= */
 
 function renderTable() {
   const search = playerSearch.value.toLowerCase();
@@ -322,6 +359,8 @@ function renderTable() {
   projectionView.innerHTML = html + "</tbody></table>";
 }
 
+/* ================= SHARED SOLVER ================= */
+
 function computeBestLineupFromPool(pool) {
   const mults = [2, 1.8, 1.6, 1.4, 1.2];
   if (!Array.isArray(pool) || pool.length < 5) return null;
@@ -359,6 +398,8 @@ function computeBestLineupFromPool(pool) {
   return best;
 }
 
+/* ================= LINEUP ================= */
+
 function computeLineup() {
   const pool = [...allData]
     .sort((a, b) => b.b3 - a.b3)
@@ -392,6 +433,8 @@ function renderLineup(best) {
 
   lineupTotal.textContent = best.score.toFixed(2);
 }
+
+/* ================= BEST TEAM ================= */
 
 function computeBestTeam() {
   const byTeam = {};
@@ -448,6 +491,13 @@ goHome();
 </script>
 
 <style>
+/* Blur the whole app while transitioning */
+.is-transitioning #app{
+  filter: blur(10px) saturate(1.15);
+  transform: translateZ(0);
+}
+
+/* Buttons */
 .btn{
   padding:.55rem 1rem;border-radius:.6rem;
   background: rgba(255,255,255,.06);
@@ -567,14 +617,15 @@ goHome();
   50%{ transform: scale(1.18); opacity: 1; }
 }
 
-/* Full-screen water ripple overlay (non-circular) */
+/* Full-screen RANDOM ripple overlay */
 .transition-overlay{
+  --int: 0.72;
   position: fixed;
   inset: 0;
   z-index: 9999;
   pointer-events: none;
   opacity: 0;
-  transition: opacity .18s ease;
+  transition: opacity .14s ease;
 }
 .transition-overlay.play{
   opacity: 1;
@@ -584,48 +635,33 @@ goHome();
   transition: opacity .32s ease;
 }
 
-/* The overlay uses an SVG filter + animated pseudo-layer */
 .transition-overlay::before{
   content:"";
   position:absolute;
-  inset:-20px;
+  inset:-24px;
+
+  /* base wash */
   background:
     linear-gradient(135deg,
-      rgba(16,185,129,.22),
-      rgba(34,211,238,.18),
-      rgba(16,185,129,.14),
-      rgba(34,211,238,.10)
+      rgba(16,185,129, calc(.22 * var(--int))),
+      rgba(34,211,238, calc(.18 * var(--int))),
+      rgba(16,185,129, calc(.14 * var(--int))),
+      rgba(34,211,238, calc(.10 * var(--int)))
     );
-  filter: url(#rippleFilter);
-  transform: translateZ(0);
-  opacity: .95;
+
+  /* IMPORTANT: this makes it look like random water distortion */
+  filter: url(#rippleFilter) blur(0.6px) saturate(1.65) brightness(1.15);
+  opacity: 1;
 }
 
-/* Extra moving shimmer bands (non-circular ripple lines) */
-.transition-overlay::after{
-  content:"";
-  position:absolute;
-  inset:-40px;
-  background:
-    repeating-linear-gradient(
-      115deg,
-      rgba(34,211,238,.18) 0px,
-      rgba(34,211,238,.18) 10px,
-      rgba(16,185,129,.10) 22px,
-      rgba(16,185,129,.00) 46px
-    );
-  mix-blend-mode: screen;
-  opacity: .55;
-  filter: url(#rippleFilter) blur(0.5px);
-  animation: bandsMove .9s linear infinite;
-}
-@keyframes bandsMove{
-  from{ transform: translate3d(-30px, -20px, 0); }
-  to{ transform: translate3d(30px, 20px, 0); }
+/* Add extra blur on the overlay itself (over the whole screen) */
+.transition-overlay{
+  backdrop-filter: blur(12px) saturate(1.3);
+  -webkit-backdrop-filter: blur(12px) saturate(1.3);
 }
 </style>
 
-<!-- SVG filter for full-screen water ripples -->
+<!-- SVG filter for random full-screen distortion -->
 <svg width="0" height="0" style="position:absolute">
   <filter id="rippleFilter">
     <feTurbulence id="ripTurb"
