@@ -128,9 +128,19 @@
 
         <div id="teamView" class="hidden mt-2 fade-in">
           <div class="flex flex-wrap items-end justify-between gap-2 mb-2">
-            <h2 class="text-2xl font-bold">Highest Projected Team</h2>
-            <div class="text-sm opacity-80">
-              Team: <span id="bestTeamName" class="font-bold"></span>
+            <div>
+              <h2 class="text-2xl font-bold">Best Team Stack (B5)</h2>
+              <div class="text-sm opacity-80">
+                Viewing: <span id="bestTeamName" class="font-bold"></span>
+              </div>
+            </div>
+
+            <!-- NEW: Team dropdown selector -->
+            <div class="flex items-center gap-2">
+              <div class="text-xs uppercase tracking-widest opacity-70">Team</div>
+              <select id="teamSelect"
+                class="px-3 py-2 rounded border bg-white/5 backdrop-blur-md border-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-200/20">
+              </select>
             </div>
           </div>
 
@@ -140,7 +150,7 @@
                 <tr>
                   <th class="p-2 text-left">Player</th>
                   <th class="p-2 text-center">Team</th>
-                  <th class="p-2 text-right">PB3</th>
+                  <th class="p-2 text-right">PB5</th>
                   <th class="p-2 text-right">Proj</th>
                   <th class="p-2 text-right">Boost</th>
                   <th class="p-2 text-right">Mult</th>
@@ -175,6 +185,10 @@ const BASE_URL =
 let league = "nhl";
 let mode = "proj";
 let allData = [];
+
+// NEW: store computed stacks by team
+let teamStacksByB5 = {};
+let overallBestTeamByB5 = null;
 
 /* ===== Blur-only transition during loading ===== */
 function startTransition() {
@@ -241,7 +255,7 @@ async function loadLeague(lg, md) {
 
   if (md === "proj") renderTable();
   else if (md === "lineup") computeLineup();
-  else computeBestTeam();
+  else computeBestTeamByB5();
 
   endTransition();
 }
@@ -343,7 +357,7 @@ function computeBestLineupFromPool(pool) {
 
 function computeLineup() {
   const pool = [...allData]
-    .sort((a, b) => b.b3 - a.b3)
+    .sort((a, b) => (b.b3 ?? 0) - (a.b3 ?? 0))
     .slice(0, 20);
 
   const best = computeBestLineupFromPool(pool);
@@ -364,10 +378,10 @@ function renderLineup(best) {
     lineupBody.insertAdjacentHTML("beforeend", `
       <tr class="border-t border-white/10 hover-row">
         <td class="p-2">${r.p.player}</td>
-        <td class="p-2 text-right">${r.p.projection.toFixed(2)}</td>
-        <td class="p-2 text-right text-emerald-200">${r.p.boost.toFixed(1)}</td>
+        <td class="p-2 text-right">${Number(r.p.projection ?? 0).toFixed(2)}</td>
+        <td class="p-2 text-right text-emerald-200">${Number(r.p.boost ?? 0).toFixed(1)}</td>
         <td class="p-2 text-right">${r.m.toFixed(1)}</td>
-        <td class="p-2 text-right font-bold">${r.s.toFixed(2)}</td>
+        <td class="p-2 text-right font-bold">${Number(r.s ?? 0).toFixed(2)}</td>
       </tr>
     `);
   });
@@ -375,9 +389,48 @@ function renderLineup(best) {
   lineupTotal.textContent = best.score.toFixed(2);
 }
 
-/* ================= BEST TEAM ================= */
+/* ================= BEST TEAM (B5 STACKS) ================= */
 
-function computeBestTeam() {
+/**
+ * Team stack scoring uses B5 directly:
+ * Score = sum( b5 * mult ) with mults [2,1.8,1.6,1.4,1.2]
+ * Players chosen = top 5 by B5 (per team)
+ */
+function buildTeamStackByB5(players) {
+  const mults = [2, 1.8, 1.6, 1.4, 1.2];
+  if (!Array.isArray(players) || players.length < 5) return null;
+
+  const picked = players
+    .slice()
+    .sort((a, b) => (b.b5 ?? 0) - (a.b5 ?? 0))
+    .slice(0, 5);
+
+  // Assign biggest mult to biggest B5 (optimal)
+  const rows = picked
+    .slice()
+    .sort((a, b) => (b.b5 ?? 0) - (a.b5 ?? 0))
+    .map((p, i) => {
+      const m = mults[i];
+      const score = (Number(p.b5 ?? 0) * m);
+      return { p, m, score };
+    });
+
+  const total = rows.reduce((sum, r) => sum + r.score, 0);
+
+  return { rows, total };
+}
+
+function computeBestTeamByB5() {
+  // If no team field exists, just bail
+  const hasTeams = allData.some(p => (p.team ?? "").toString().trim().length > 0);
+  if (!hasTeams) {
+    bestTeamName.textContent = "No teams found";
+    teamBody.innerHTML = "";
+    teamTotal.textContent = "0.00";
+    return;
+  }
+
+  // Group by team
   const byTeam = {};
   allData.forEach(p => {
     const t = (p.team ?? "UNK").toString().trim() || "UNK";
@@ -385,45 +438,76 @@ function computeBestTeam() {
     byTeam[t].push(p);
   });
 
-  let bestTeam = null;
+  // Build each team stack using B5
+  teamStacksByB5 = {};
+  overallBestTeamByB5 = null;
 
   Object.entries(byTeam).forEach(([team, players]) => {
-    const top6 = players
-      .slice()
-      .sort((a, b) => b.b3 - a.b3)
-      .slice(0, 6);
+    const stack = buildTeamStackByB5(players);
+    if (!stack) return;
 
-    const best = computeBestLineupFromPool(top6);
-    if (!best) return;
+    teamStacksByB5[team] = stack;
 
-    if (!bestTeam || best.score > bestTeam.best.score) {
-      bestTeam = { team, best };
+    if (!overallBestTeamByB5 || stack.total > overallBestTeamByB5.total) {
+      overallBestTeamByB5 = { team, ...stack };
     }
   });
 
-  if (!bestTeam) return;
+  // Populate dropdown
+  const teamsSorted = Object.keys(teamStacksByB5).sort();
+  teamSelect.innerHTML = "";
 
-  bestTeamName.textContent = bestTeam.team;
+  // Option 1: Overall best
+  teamSelect.insertAdjacentHTML("beforeend", `<option value="__BEST__">Overall Best</option>`);
+
+  // Then every team
+  teamsSorted.forEach(t => {
+    teamSelect.insertAdjacentHTML("beforeend", `<option value="${t}">${t}</option>`);
+  });
+
+  // Set default to overall best
+  teamSelect.value = "__BEST__";
+  renderTeamStackSelection();
+
+  // Hook change event (safe rebind)
+  teamSelect.onchange = renderTeamStackSelection;
+}
+
+function renderTeamStackSelection() {
+  const v = teamSelect.value;
+
+  if (v === "__BEST__") {
+    if (!overallBestTeamByB5) return;
+    bestTeamName.textContent = overallBestTeamByB5.team + " (Overall Best)";
+    renderTeamStack(overallBestTeamByB5.rows, overallBestTeamByB5.total);
+  } else {
+    const stack = teamStacksByB5[v];
+    if (!stack) return;
+    bestTeamName.textContent = v;
+    renderTeamStack(stack.rows, stack.total);
+  }
+}
+
+function renderTeamStack(rows, total) {
   teamBody.innerHTML = "";
 
-  bestTeam.best.players.forEach((p, i) => {
-    const m = bestTeam.best.mults[i];
-    const s = p.projection * (m + p.boost);
-
+  // Show in multiplier order (2x -> 1.2x)
+  rows.forEach(r => {
+    const p = r.p;
     teamBody.insertAdjacentHTML("beforeend", `
       <tr class="border-t border-white/10 hover-row">
-        <td class="p-2">${p.player}</td>
-        <td class="p-2 text-center">${p.team}</td>
-        <td class="p-2 text-right">${p.b3.toFixed(2)}</td>
-        <td class="p-2 text-right">${p.projection.toFixed(2)}</td>
-        <td class="p-2 text-right text-emerald-200">${p.boost.toFixed(1)}</td>
-        <td class="p-2 text-right">${m.toFixed(1)}</td>
-        <td class="p-2 text-right font-bold">${s.toFixed(2)}</td>
+        <td class="p-2">${p.player ?? ""}</td>
+        <td class="p-2 text-center">${p.team ?? ""}</td>
+        <td class="p-2 text-right">${Number(p.b5 ?? 0).toFixed(2)}</td>
+        <td class="p-2 text-right">${Number(p.projection ?? 0).toFixed(2)}</td>
+        <td class="p-2 text-right text-emerald-200">${Number(p.boost ?? 0).toFixed(1)}</td>
+        <td class="p-2 text-right">${Number(r.m ?? 0).toFixed(1)}</td>
+        <td class="p-2 text-right font-bold">${Number(r.score ?? 0).toFixed(2)}</td>
       </tr>
     `);
   });
 
-  teamTotal.textContent = bestTeam.best.score.toFixed(2);
+  teamTotal.textContent = Number(total ?? 0).toFixed(2);
 }
 
 playerSearch.addEventListener("input", renderTable);
