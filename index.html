@@ -126,16 +126,12 @@
           </div>
         </div>
 
-        <!-- UPDATED TEAM VIEW: Ranked team list -->
+        <!-- TEAM VIEW: Ranked team list -->
         <div id="teamView" class="hidden mt-2 fade-in">
           <div class="flex flex-wrap items-end justify-between gap-2 mb-3">
             <div>
               <h2 class="text-2xl font-bold">Top Team Stacks</h2>
-              <div class="text-sm opacity-80">
-                Ranking uses <span class="font-semibold">B3 + B4 + B5</span> (top 5 players per team)
-              </div>
             </div>
-
             <div class="text-xs opacity-70">
               Highest teams at the top
             </div>
@@ -161,6 +157,10 @@ const BASE_URL =
 let league = "nhl";
 let mode = "proj";
 let allData = [];
+
+// NEW: sorting state for projections table
+let sortKey = null;   // e.g. "projection", "b3", "player"
+let sortDir = "desc"; // "asc" or "desc"
 
 /* ===== Blur-only transition during loading ===== */
 function startTransition() {
@@ -202,6 +202,10 @@ async function loadLeague(lg, md) {
   league = lg;
   mode = md;
 
+  // reset sorting when switching leagues/modes to keep it clean
+  sortKey = null;
+  sortDir = "desc";
+
   pageTitle.textContent =
     lg.toUpperCase() + (
       md === "proj" ? " Projections" :
@@ -232,33 +236,93 @@ async function loadLeague(lg, md) {
   endTransition();
 }
 
-/* ================= TABLE ================= */
+/* ================= SORTING HELPERS ================= */
+
+function safeNum(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+function safeStr(v) {
+  return (v ?? "").toString().toLowerCase();
+}
+function setSort(key) {
+  if (sortKey === key) {
+    sortDir = (sortDir === "asc") ? "desc" : "asc";
+  } else {
+    sortKey = key;
+    sortDir = (key === "player" || key === "team") ? "asc" : "desc";
+  }
+  renderTable();
+}
+function sortArrowFor(key) {
+  if (sortKey !== key) return `<span class="th-arrow opacity-40">↕</span>`;
+  return sortDir === "asc"
+    ? `<span class="th-arrow">↑</span>`
+    : `<span class="th-arrow">↓</span>`;
+}
+function th(label, key, alignRight=false, center=false) {
+  const align =
+    center ? "text-center" :
+    alignRight ? "text-right" : "text-left";
+  return `
+    <th class="p-2 ${align}">
+      <button class="th-btn" onclick="setSort('${key}')">
+        <span>${label}</span>
+        ${sortArrowFor(key)}
+      </button>
+    </th>
+  `;
+}
+
+/* ================= TABLE (SORTABLE) ================= */
 
 function renderTable() {
   const search = playerSearch.value.toLowerCase();
-  const rows = allData.filter(p =>
+
+  // Filter first
+  let rows = allData.filter(p =>
     !search || (p.player || "").toLowerCase().includes(search)
   );
+
+  // Sort based on current sortKey
+  if (sortKey) {
+    rows = rows.slice().sort((a, b) => {
+      let av, bv;
+
+      if (sortKey === "player" || sortKey === "team") {
+        av = safeStr(a[sortKey]);
+        bv = safeStr(b[sortKey]);
+        if (av < bv) return sortDir === "asc" ? -1 : 1;
+        if (av > bv) return sortDir === "asc" ? 1 : -1;
+        return 0;
+      }
+
+      av = safeNum(a[sortKey]);
+      bv = safeNum(b[sortKey]);
+      return sortDir === "asc" ? (av - bv) : (bv - av);
+    });
+  }
 
   let html = `
   <table class="w-full text-sm rounded-lg overflow-hidden">
     <thead class="bg-white/10">
       <tr>
-        <th class="p-2">Player</th>
+        ${th("Player","player")}
         ${league === "nhl" ? `
-          <th class="p-2">Team</th>
-          <th class="p-2">G</th>
-          <th class="p-2">A</th>
-          <th class="p-2">P</th>
-          <th class="p-2">SOG</th>
-          <th class="p-2">BLK</th>` : ``}
-        <th class="p-2">Proj</th>
-        <th class="p-2">Boost</th>
-        <th class="p-2">B1</th>
-        <th class="p-2">B2</th>
-        <th class="p-2">B3</th>
-        <th class="p-2">B4</th>
-        <th class="p-2">B5</th>
+          ${th("Team","team",false,true)}
+          ${th("G","goals",true)}
+          ${th("A","assists",true)}
+          ${th("P","points",true)}
+          ${th("SOG","shots",true)}
+          ${th("BLK","blocks",true)}
+        ` : ``}
+        ${th("Proj","projection",true)}
+        ${th("Boost","boost",true)}
+        ${th("B1","b1",true)}
+        ${th("B2","b2",true)}
+        ${th("B3","b3",true)}
+        ${th("B4","b4",true)}
+        ${th("B5","b5",true)}
       </tr>
     </thead><tbody class="bg-white/5">`;
 
@@ -268,18 +332,18 @@ function renderTable() {
       <td class="p-2">${p.player ?? ""}</td>
       ${league === "nhl" ? `
         <td class="p-2 text-center">${p.team ?? ""}</td>
-        <td class="p-2 text-right">${Number(p.goals ?? 0).toFixed(2)}</td>
-        <td class="p-2 text-right">${Number(p.assists ?? 0).toFixed(2)}</td>
-        <td class="p-2 text-right">${Number(p.points ?? 0).toFixed(2)}</td>
-        <td class="p-2 text-right">${Number(p.shots ?? 0).toFixed(1)}</td>
-        <td class="p-2 text-right">${Number(p.blocks ?? 0).toFixed(1)}</td>` : ``}
-      <td class="p-2 text-right">${Number(p.projection ?? 0).toFixed(2)}</td>
-      <td class="p-2 text-right text-emerald-200">${Number(p.boost ?? 0).toFixed(1)}</td>
-      <td class="p-2 text-right">${Number(p.b1 ?? 0).toFixed(2)}</td>
-      <td class="p-2 text-right">${Number(p.b2 ?? 0).toFixed(2)}</td>
-      <td class="p-2 text-right">${Number(p.b3 ?? 0).toFixed(2)}</td>
-      <td class="p-2 text-right">${Number(p.b4 ?? 0).toFixed(2)}</td>
-      <td class="p-2 text-right">${Number(p.b5 ?? 0).toFixed(2)}</td>
+        <td class="p-2 text-right">${safeNum(p.goals).toFixed(2)}</td>
+        <td class="p-2 text-right">${safeNum(p.assists).toFixed(2)}</td>
+        <td class="p-2 text-right">${safeNum(p.points).toFixed(2)}</td>
+        <td class="p-2 text-right">${safeNum(p.shots).toFixed(1)}</td>
+        <td class="p-2 text-right">${safeNum(p.blocks).toFixed(1)}</td>` : ``}
+      <td class="p-2 text-right">${safeNum(p.projection).toFixed(2)}</td>
+      <td class="p-2 text-right text-emerald-200">${safeNum(p.boost).toFixed(1)}</td>
+      <td class="p-2 text-right">${safeNum(p.b1).toFixed(2)}</td>
+      <td class="p-2 text-right">${safeNum(p.b2).toFixed(2)}</td>
+      <td class="p-2 text-right">${safeNum(p.b3).toFixed(2)}</td>
+      <td class="p-2 text-right">${safeNum(p.b4).toFixed(2)}</td>
+      <td class="p-2 text-right">${safeNum(p.b5).toFixed(2)}</td>
     </tr>`;
   });
 
@@ -309,7 +373,7 @@ function computeBestLineupFromPool(pool) {
       perms.forEach(m => {
         let s = 0;
         for (let i = 0; i < 5; i++) {
-          s += picked[i].projection * (m[i] + picked[i].boost);
+          s += safeNum(picked[i].projection) * (m[i] + safeNum(picked[i].boost));
         }
         if (s > best.score)
           best = { score: s, players: picked.slice(), mults: m.slice() };
@@ -327,7 +391,7 @@ function computeBestLineupFromPool(pool) {
 
 function computeLineup() {
   const pool = [...allData]
-    .sort((a, b) => (b.b3 ?? 0) - (a.b3 ?? 0))
+    .sort((a, b) => safeNum(b.b3) - safeNum(a.b3))
     .slice(0, 20);
 
   const best = computeBestLineupFromPool(pool);
@@ -341,17 +405,17 @@ function renderLineup(best) {
   const rows = best.players.map((p, i) => ({
     p,
     m: best.mults[i],
-    s: p.projection * (best.mults[i] + p.boost)
+    s: safeNum(p.projection) * (best.mults[i] + safeNum(p.boost))
   })).sort((a, b) => b.m - a.m);
 
   rows.forEach(r => {
     lineupBody.insertAdjacentHTML("beforeend", `
       <tr class="border-t border-white/10 hover-row">
-        <td class="p-2">${r.p.player}</td>
-        <td class="p-2 text-right">${Number(r.p.projection ?? 0).toFixed(2)}</td>
-        <td class="p-2 text-right text-emerald-200">${Number(r.p.boost ?? 0).toFixed(1)}</td>
+        <td class="p-2">${r.p.player ?? ""}</td>
+        <td class="p-2 text-right">${safeNum(r.p.projection).toFixed(2)}</td>
+        <td class="p-2 text-right text-emerald-200">${safeNum(r.p.boost).toFixed(1)}</td>
         <td class="p-2 text-right">${r.m.toFixed(1)}</td>
-        <td class="p-2 text-right font-bold">${Number(r.s ?? 0).toFixed(2)}</td>
+        <td class="p-2 text-right font-bold">${safeNum(r.s).toFixed(2)}</td>
       </tr>
     `);
   });
@@ -361,26 +425,19 @@ function renderLineup(best) {
 
 /* ================= TEAM STACK RANKING LIST ================= */
 
-/**
- * Player stack value = (b3 + b4 + b5)
- * Pick top 5 players per team by this value.
- * Team score = sum( value * mult ) using mults [2, 1.8, 1.6, 1.4, 1.2]
- */
 function playerStackValue(p) {
-  return Number(p.b3 ?? 0) + Number(p.b4 ?? 0) + Number(p.b5 ?? 0);
+  return safeNum(p.b3) + safeNum(p.b4) + safeNum(p.b5);
 }
 
 function buildTeamStackByB345(players) {
   const mults = [2, 1.8, 1.6, 1.4, 1.2];
   if (!Array.isArray(players) || players.length < 5) return null;
 
-  // pick top 5 by b3+b4+b5
   const picked = players
     .slice()
     .sort((a, b) => playerStackValue(b) - playerStackValue(a))
     .slice(0, 5);
 
-  // assign multipliers biggest to biggest value (optimal)
   const rows = picked
     .slice()
     .sort((a, b) => playerStackValue(b) - playerStackValue(a))
@@ -388,7 +445,7 @@ function buildTeamStackByB345(players) {
       const val = playerStackValue(p);
       const m = mults[i];
       const score = val * m;
-      return { p, val, m, score };
+      return { p, m, score };
     });
 
   const total = rows.reduce((s, r) => s + r.score, 0);
@@ -398,7 +455,6 @@ function buildTeamStackByB345(players) {
 function computeRankedTeamStacks() {
   teamRankList.innerHTML = "";
 
-  // group by team
   const byTeam = {};
   allData.forEach(p => {
     const t = (p.team ?? "").toString().trim();
@@ -420,7 +476,6 @@ function computeRankedTeamStacks() {
     teamRankList.innerHTML = `
       <div class="p-4 rounded-xl border border-white/10 bg-white/5">
         <div class="font-semibold">No team data found</div>
-        <div class="text-sm opacity-70 mt-1">Make sure your API returns a "team" field for players.</div>
       </div>
     `;
     return;
@@ -436,7 +491,6 @@ function computeRankedTeamStacks() {
       return `
         <span class="chip">
           <span class="chip-name">${r.p.player ?? ""}</span>
-          <span class="chip-val">${r.val.toFixed(2)}</span>
         </span>
       `;
     }).join("");
@@ -448,12 +502,11 @@ function computeRankedTeamStacks() {
             <div class="rank-badge">${medal} #${idx + 1}</div>
             <div>
               <div class="text-lg font-bold tracking-wide">${t.team}</div>
-              <div class="text-xs opacity-70">Top 5 by (B3+B4+B5)</div>
             </div>
           </div>
 
           <div class="text-right">
-            <div class="text-xs uppercase tracking-widest opacity-70">Stack Score</div>
+            <div class="text-xs uppercase tracking-widest opacity-70">Total Score</div>
             <div class="text-xl font-extrabold text-emerald-200">${t.total.toFixed(2)}</div>
           </div>
         </div>
@@ -627,7 +680,25 @@ goHome();
   50%{ transform: scale(1.18); opacity: 1; }
 }
 
-/* NEW: Team rank list styling */
+/* NEW: sortable header button */
+.th-btn{
+  width: 100%;
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: .5rem;
+  font-weight: 700;
+  opacity: .95;
+}
+.th-btn:hover{
+  opacity: 1;
+}
+.th-arrow{
+  font-size: .9rem;
+  opacity: .85;
+}
+
+/* Team rank list styling */
 .team-card{
   border-radius: 1rem;
   border: 1px solid rgba(255,255,255,.10);
@@ -663,10 +734,6 @@ goHome();
 .chip-name{
   font-weight: 650;
   font-size: .85rem;
-}
-.chip-val{
-  font-size: .8rem;
-  opacity: .75;
 }
 </style>
 
