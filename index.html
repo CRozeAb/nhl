@@ -126,46 +126,22 @@
           </div>
         </div>
 
+        <!-- UPDATED TEAM VIEW: Ranked team list -->
         <div id="teamView" class="hidden mt-2 fade-in">
-          <div class="flex flex-wrap items-end justify-between gap-2 mb-2">
+          <div class="flex flex-wrap items-end justify-between gap-2 mb-3">
             <div>
-              <h2 class="text-2xl font-bold">Best Team Stack (B5)</h2>
+              <h2 class="text-2xl font-bold">Top Team Stacks</h2>
               <div class="text-sm opacity-80">
-                Viewing: <span id="bestTeamName" class="font-bold"></span>
+                Ranking uses <span class="font-semibold">B3 + B4 + B5</span> (top 5 players per team)
               </div>
             </div>
 
-            <!-- NEW: Team dropdown selector -->
-            <div class="flex items-center gap-2">
-              <div class="text-xs uppercase tracking-widest opacity-70">Team</div>
-              <select id="teamSelect"
-                class="px-3 py-2 rounded border bg-white/5 backdrop-blur-md border-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-200/20">
-              </select>
+            <div class="text-xs opacity-70">
+              Highest teams at the top
             </div>
           </div>
 
-          <div class="table-wrap">
-            <table class="w-full rounded-lg overflow-hidden">
-              <thead class="bg-white/10">
-                <tr>
-                  <th class="p-2 text-left">Player</th>
-                  <th class="p-2 text-center">Team</th>
-                  <th class="p-2 text-right">PB5</th>
-                  <th class="p-2 text-right">Proj</th>
-                  <th class="p-2 text-right">Boost</th>
-                  <th class="p-2 text-right">Mult</th>
-                  <th class="p-2 text-right">Score</th>
-                </tr>
-              </thead>
-              <tbody id="teamBody" class="bg-white/5"></tbody>
-              <tfoot>
-                <tr class="font-bold border-t border-white/10">
-                  <td class="p-2">Total</td>
-                  <td colspan="6" id="teamTotal" class="p-2 text-right"></td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+          <div id="teamRankList" class="space-y-3"></div>
         </div>
 
       </main>
@@ -185,10 +161,6 @@ const BASE_URL =
 let league = "nhl";
 let mode = "proj";
 let allData = [];
-
-// NEW: store computed stacks by team
-let teamStacksByB5 = {};
-let overallBestTeamByB5 = null;
 
 /* ===== Blur-only transition during loading ===== */
 function startTransition() {
@@ -255,7 +227,7 @@ async function loadLeague(lg, md) {
 
   if (md === "proj") renderTable();
   else if (md === "lineup") computeLineup();
-  else computeBestTeamByB5();
+  else computeRankedTeamStacks();
 
   endTransition();
 }
@@ -314,7 +286,7 @@ function renderTable() {
   projectionView.innerHTML = html + "</tbody></table>";
 }
 
-/* ================= SHARED SOLVER ================= */
+/* ================= LINEUP ================= */
 
 function computeBestLineupFromPool(pool) {
   const mults = [2, 1.8, 1.6, 1.4, 1.2];
@@ -353,8 +325,6 @@ function computeBestLineupFromPool(pool) {
   return best;
 }
 
-/* ================= LINEUP ================= */
-
 function computeLineup() {
   const pool = [...allData]
     .sort((a, b) => (b.b3 ?? 0) - (a.b3 ?? 0))
@@ -389,125 +359,111 @@ function renderLineup(best) {
   lineupTotal.textContent = best.score.toFixed(2);
 }
 
-/* ================= BEST TEAM (B5 STACKS) ================= */
+/* ================= TEAM STACK RANKING LIST ================= */
 
 /**
- * Team stack scoring uses B5 directly:
- * Score = sum( b5 * mult ) with mults [2,1.8,1.6,1.4,1.2]
- * Players chosen = top 5 by B5 (per team)
+ * Player stack value = (b3 + b4 + b5)
+ * Pick top 5 players per team by this value.
+ * Team score = sum( value * mult ) using mults [2, 1.8, 1.6, 1.4, 1.2]
  */
-function buildTeamStackByB5(players) {
+function playerStackValue(p) {
+  return Number(p.b3 ?? 0) + Number(p.b4 ?? 0) + Number(p.b5 ?? 0);
+}
+
+function buildTeamStackByB345(players) {
   const mults = [2, 1.8, 1.6, 1.4, 1.2];
   if (!Array.isArray(players) || players.length < 5) return null;
 
+  // pick top 5 by b3+b4+b5
   const picked = players
     .slice()
-    .sort((a, b) => (b.b5 ?? 0) - (a.b5 ?? 0))
+    .sort((a, b) => playerStackValue(b) - playerStackValue(a))
     .slice(0, 5);
 
-  // Assign biggest mult to biggest B5 (optimal)
+  // assign multipliers biggest to biggest value (optimal)
   const rows = picked
     .slice()
-    .sort((a, b) => (b.b5 ?? 0) - (a.b5 ?? 0))
+    .sort((a, b) => playerStackValue(b) - playerStackValue(a))
     .map((p, i) => {
+      const val = playerStackValue(p);
       const m = mults[i];
-      const score = (Number(p.b5 ?? 0) * m);
-      return { p, m, score };
+      const score = val * m;
+      return { p, val, m, score };
     });
 
-  const total = rows.reduce((sum, r) => sum + r.score, 0);
-
+  const total = rows.reduce((s, r) => s + r.score, 0);
   return { rows, total };
 }
 
-function computeBestTeamByB5() {
-  // If no team field exists, just bail
-  const hasTeams = allData.some(p => (p.team ?? "").toString().trim().length > 0);
-  if (!hasTeams) {
-    bestTeamName.textContent = "No teams found";
-    teamBody.innerHTML = "";
-    teamTotal.textContent = "0.00";
-    return;
-  }
+function computeRankedTeamStacks() {
+  teamRankList.innerHTML = "";
 
-  // Group by team
+  // group by team
   const byTeam = {};
   allData.forEach(p => {
-    const t = (p.team ?? "UNK").toString().trim() || "UNK";
+    const t = (p.team ?? "").toString().trim();
+    if (!t) return;
     if (!byTeam[t]) byTeam[t] = [];
     byTeam[t].push(p);
   });
 
-  // Build each team stack using B5
-  teamStacksByB5 = {};
-  overallBestTeamByB5 = null;
+  const teams = Object.entries(byTeam)
+    .map(([team, players]) => {
+      const stack = buildTeamStackByB345(players);
+      if (!stack) return null;
+      return { team, ...stack };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.total - a.total);
 
-  Object.entries(byTeam).forEach(([team, players]) => {
-    const stack = buildTeamStackByB5(players);
-    if (!stack) return;
-
-    teamStacksByB5[team] = stack;
-
-    if (!overallBestTeamByB5 || stack.total > overallBestTeamByB5.total) {
-      overallBestTeamByB5 = { team, ...stack };
-    }
-  });
-
-  // Populate dropdown
-  const teamsSorted = Object.keys(teamStacksByB5).sort();
-  teamSelect.innerHTML = "";
-
-  // Option 1: Overall best
-  teamSelect.insertAdjacentHTML("beforeend", `<option value="__BEST__">Overall Best</option>`);
-
-  // Then every team
-  teamsSorted.forEach(t => {
-    teamSelect.insertAdjacentHTML("beforeend", `<option value="${t}">${t}</option>`);
-  });
-
-  // Set default to overall best
-  teamSelect.value = "__BEST__";
-  renderTeamStackSelection();
-
-  // Hook change event (safe rebind)
-  teamSelect.onchange = renderTeamStackSelection;
-}
-
-function renderTeamStackSelection() {
-  const v = teamSelect.value;
-
-  if (v === "__BEST__") {
-    if (!overallBestTeamByB5) return;
-    bestTeamName.textContent = overallBestTeamByB5.team + " (Overall Best)";
-    renderTeamStack(overallBestTeamByB5.rows, overallBestTeamByB5.total);
-  } else {
-    const stack = teamStacksByB5[v];
-    if (!stack) return;
-    bestTeamName.textContent = v;
-    renderTeamStack(stack.rows, stack.total);
+  if (!teams.length) {
+    teamRankList.innerHTML = `
+      <div class="p-4 rounded-xl border border-white/10 bg-white/5">
+        <div class="font-semibold">No team data found</div>
+        <div class="text-sm opacity-70 mt-1">Make sure your API returns a "team" field for players.</div>
+      </div>
+    `;
+    return;
   }
-}
 
-function renderTeamStack(rows, total) {
-  teamBody.innerHTML = "";
+  teams.forEach((t, idx) => {
+    const medal =
+      idx === 0 ? "🥇" :
+      idx === 1 ? "🥈" :
+      idx === 2 ? "🥉" : "🏒";
 
-  // Show in multiplier order (2x -> 1.2x)
-  rows.forEach(r => {
-    const p = r.p;
-    teamBody.insertAdjacentHTML("beforeend", `
-      <tr class="border-t border-white/10 hover-row">
-        <td class="p-2">${p.player ?? ""}</td>
-        <td class="p-2 text-center">${p.team ?? ""}</td>
-        <td class="p-2 text-right">${Number(p.b5 ?? 0).toFixed(2)}</td>
-        <td class="p-2 text-right">${Number(p.projection ?? 0).toFixed(2)}</td>
-        <td class="p-2 text-right text-emerald-200">${Number(p.boost ?? 0).toFixed(1)}</td>
-        <td class="p-2 text-right">${Number(r.m ?? 0).toFixed(1)}</td>
-        <td class="p-2 text-right font-bold">${Number(r.score ?? 0).toFixed(2)}</td>
-      </tr>
+    const playersInline = t.rows.map(r => {
+      return `
+        <span class="chip">
+          <span class="chip-name">${r.p.player ?? ""}</span>
+          <span class="chip-val">${r.val.toFixed(2)}</span>
+        </span>
+      `;
+    }).join("");
+
+    teamRankList.insertAdjacentHTML("beforeend", `
+      <div class="team-card hover-row">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+          <div class="flex items-center gap-3">
+            <div class="rank-badge">${medal} #${idx + 1}</div>
+            <div>
+              <div class="text-lg font-bold tracking-wide">${t.team}</div>
+              <div class="text-xs opacity-70">Top 5 by (B3+B4+B5)</div>
+            </div>
+          </div>
+
+          <div class="text-right">
+            <div class="text-xs uppercase tracking-widest opacity-70">Stack Score</div>
+            <div class="text-xl font-extrabold text-emerald-200">${t.total.toFixed(2)}</div>
+          </div>
+        </div>
+
+        <div class="chips mt-3">
+          ${playersInline}
+        </div>
+      </div>
     `);
   });
-
-  teamTotal.textContent = Number(total ?? 0).toFixed(2);
 }
 
 playerSearch.addEventListener("input", renderTable);
@@ -655,6 +611,7 @@ goHome();
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='320' height='320' filter='url(%23n)' opacity='.6'/%3E%3C/svg%3E");
   mix-blend-mode: overlay;
 }
+
 @keyframes auroraMove{
   0%{ transform: translate3d(-2%, -1%, 0) scale(1.02); }
   50%{ transform: translate3d(2%, 1%, 0) scale(1.05); }
@@ -668,6 +625,48 @@ goHome();
 @keyframes pulseDot{
   0%,100%{ transform: scale(1); opacity: .9; }
   50%{ transform: scale(1.18); opacity: 1; }
+}
+
+/* NEW: Team rank list styling */
+.team-card{
+  border-radius: 1rem;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.04);
+  padding: 1rem;
+  box-shadow: 0 18px 55px rgba(0,0,0,.45);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.rank-badge{
+  padding: .35rem .65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.06);
+  font-weight: 700;
+  font-size: .85rem;
+  letter-spacing: .02em;
+}
+.chips{
+  display:flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+.chip{
+  display:flex;
+  align-items:center;
+  gap:.5rem;
+  padding: .35rem .55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(2,6,23,.35);
+}
+.chip-name{
+  font-weight: 650;
+  font-size: .85rem;
+}
+.chip-val{
+  font-size: .8rem;
+  opacity: .75;
 }
 </style>
 
