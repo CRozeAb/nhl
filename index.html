@@ -64,7 +64,6 @@
             <span class="nav-arrow">→</span>
           </button>
 
-          <!-- NEW -->
           <button onclick="loadLeague('nhl','best_lineups')" class="nav-btn">
             <span class="nav-icon">🔥</span>
             <span class="flex-1 text-left"><div class="font-semibold">NHL Top 10 Lineups</div></span>
@@ -95,11 +94,10 @@
             <div class="relative z-10">
               <div class="text-xs uppercase tracking-[0.25em] opacity-70 mb-2">Main Menu</div>
               <div class="text-2xl md:text-3xl font-extrabold leading-tight">Choose a tab</div>
-              <div class="mt-2 text-sm opacity-80">Navigation is here on the main page. Sidebar only appears after you open a page.</div>
+              <div class="mt-2 text-sm opacity-80">Sidebar only appears after you open a page.</div>
             </div>
           </div>
 
-          <!-- Big nav buttons on main page -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button onclick="loadLeague('nhl','proj')" class="nav-btn">
               <span class="nav-icon">🏒</span>
@@ -119,7 +117,6 @@
               <span class="nav-arrow">→</span>
             </button>
 
-            <!-- NEW -->
             <button onclick="loadLeague('nhl','best_lineups')" class="nav-btn">
               <span class="nav-icon">🔥</span>
               <span class="flex-1 text-left"><div class="font-semibold">NHL Top 10 Lineups</div></span>
@@ -182,24 +179,19 @@
             <div>
               <h2 class="text-2xl font-bold">Top Team Stacks</h2>
             </div>
-            <div class="text-xs opacity-70">
-              Highest teams at the top
-            </div>
+            <div class="text-xs opacity-70">Highest teams at the top</div>
           </div>
-
           <div id="teamRankList" class="space-y-3"></div>
         </div>
 
-        <!-- NEW: TOP 10 LINEUPS VIEW -->
+        <!-- TOP 10 LINEUPS VIEW -->
         <div id="bestLineupsView" class="hidden mt-2 fade-in">
           <div class="flex flex-wrap items-end justify-between gap-2 mb-3">
             <div>
               <h2 class="text-2xl font-bold">Top 10 Lineups</h2>
               <div class="text-xs opacity-70 mt-1">From <span class="font-semibold">NHL_BEST_LINEUPS</span></div>
             </div>
-            <div class="text-xs opacity-70">
-              Showing 10 lineups
-            </div>
+            <div class="text-xs opacity-70">Showing 10 lineups</div>
           </div>
 
           <div id="bestLineupsList" class="space-y-4"></div>
@@ -222,13 +214,10 @@ const BASE_URL =
 let league = "nhl";
 let mode = "home";
 let allData = [];
-
-// NEW: best lineups data
 let bestLineups = [];
 
-// NEW: sorting state for projections table
-let sortKey = null;   // e.g. "projection", "b3", "player"
-let sortDir = "desc"; // "asc" or "desc"
+let sortKey = null;
+let sortDir = "desc";
 
 /* ===== Blur-only transition during loading ===== */
 function startTransition() {
@@ -248,8 +237,7 @@ function endTransition() {
 
 /* ===== UI helpers ===== */
 function setSidebarVisible(isVisible) {
-  const nav = document.getElementById("navAside");
-  nav.classList.toggle("hidden", !isVisible);
+  navAside.classList.toggle("hidden", !isVisible);
 }
 function setViewsVisible({ home=false, proj=false, lineup=false, team=false, bestLineupsPage=false, search=false }) {
   homeView.classList.toggle("hidden", !home);
@@ -267,8 +255,8 @@ async function goHome() {
   mode = "home";
   pageTitle.textContent = "Main Menu";
 
-  setSidebarVisible(false);                 // sidebar only on pages (not home)
-  setViewsVisible({ home:true });           // main page = navigation
+  setSidebarVisible(false);
+  setViewsVisible({ home:true });
 
   loading.classList.add("hidden");
   endTransition();
@@ -281,11 +269,9 @@ async function loadLeague(lg, md) {
   league = lg;
   mode = md;
 
-  // reset sorting when switching leagues/modes
   sortKey = null;
   sortDir = "desc";
 
-  // Sidebar appears on "certain page" (anything not home)
   setSidebarVisible(true);
 
   pageTitle.textContent =
@@ -297,10 +283,8 @@ async function loadLeague(lg, md) {
       ""
     );
 
-  // Hide everything first
   setViewsVisible({ home:false, proj:false, lineup:false, team:false, bestLineupsPage:false, search:false });
 
-  // Toggle the correct view
   const showProj = (md === "proj");
   const showLineup = (md === "lineup");
   const showTeam = (md === "team");
@@ -318,7 +302,7 @@ async function loadLeague(lg, md) {
 
   try {
     if (md === "best_lineups") {
-      // NEW endpoint parameter "sheet=NHL_BEST_LINEUPS"
+      // expects your web app to route this to the NHL_BEST_LINEUPS sheet
       const res = await fetch(`${BASE_URL}?league=${lg}&sheet=NHL_BEST_LINEUPS`);
       bestLineups = await res.json();
     } else {
@@ -484,7 +468,6 @@ function computeBestLineupFromPool(pool) {
   choose(0, []);
   return best;
 }
-
 function computeLineup() {
   const pool = [...allData]
     .sort((a, b) => safeNum(b.b3) - safeNum(a.b3))
@@ -494,7 +477,6 @@ function computeLineup() {
   if (!best) return;
   renderLineup(best);
 }
-
 function renderLineup(best) {
   lineupBody.innerHTML = "";
 
@@ -580,13 +562,9 @@ function computeRankedTeamStacks() {
       idx === 1 ? "🥈" :
       idx === 2 ? "🥉" : "🏒";
 
-    const playersInline = t.rows.map(r => {
-      return `
-        <span class="chip">
-          <span class="chip-name">${r.p.player ?? ""}</span>
-        </span>
-      `;
-    }).join("");
+    const playersInline = t.rows.map(r => `
+      <span class="chip"><span class="chip-name">${r.p.player ?? ""}</span></span>
+    `).join("");
 
     teamRankList.insertAdjacentHTML("beforeend", `
       <div class="team-card hover-row">
@@ -604,70 +582,76 @@ function computeRankedTeamStacks() {
           </div>
         </div>
 
-        <div class="chips mt-3">
-          ${playersInline}
-        </div>
+        <div class="chips mt-3">${playersInline}</div>
       </div>
     `);
   });
 }
 
-/* ================= NEW: TOP 10 LINEUPS =================
-   Expected NHL_BEST_LINEUPS rows to have something like:
-   {
-     players: ["A", "B", "C", "D", "E"] OR players: "A, B, C, D, E"
-     objective: number
-     expected: number
-     sd: number
-     synergy: number
-   }
-   If your sheet uses different column names, adjust the key mapping below.
-*/
-function normalizePlayersField(row) {
-  if (Array.isArray(row.players)) return row.players;
-  if (typeof row.players === "string") {
-    return row.players.split(",").map(s => s.trim()).filter(Boolean);
-  }
+/* ================= TOP 10 LINEUPS (MATCHES YOUR HEADERS) ================= */
 
-  // fallback: try common sheet column names like p1..p5
-  const maybe = ["p1","p2","p3","p4","p5"].map(k => row[k]).filter(Boolean);
-  if (maybe.length) return maybe.map(x => x.toString().trim());
-
-  return [];
+function slotObj(r, i) {
+  return {
+    mult: safeNum(r[`slot${i}_mult`]),
+    player: r[`slot${i}_player`] ?? "",
+    team: r[`slot${i}_team`] ?? "",
+    mu: safeNum(r[`slot${i}_mu`]),
+    boost: safeNum(r[`slot${i}_boost`]),
+  };
 }
+
 function renderBestLineups() {
   bestLineupsList.innerHTML = "";
 
   const rows = Array.isArray(bestLineups) ? bestLineups.slice() : [];
-  const top10 = rows.slice(0, 10);
+  const top10 = rows
+    .slice()
+    .sort((a, b) => safeNum(a.rank) - safeNum(b.rank))  // rank 1..10
+    .slice(0, 10);
 
   if (!top10.length) {
     bestLineupsList.innerHTML = `
       <div class="p-4 rounded-xl border border-white/10 bg-white/5">
         <div class="font-semibold">No lineups found</div>
-        <div class="text-xs opacity-70 mt-1">Make sure your Apps Script returns data for sheet NHL_BEST_LINEUPS.</div>
+        <div class="text-xs opacity-70 mt-1">Make sure your web app returns the NHL_BEST_LINEUPS sheet rows.</div>
       </div>
     `;
     return;
   }
 
-  top10.forEach((r, idx) => {
-    const players = normalizePlayersField(r);
+  top10.forEach(r => {
+    const rank = safeNum(r.rank);
+    const objective = safeNum(r.objective);
+    const expected = safeNum(r.expected);
+    const sd = safeNum(r.sd);
+    const synergy = safeNum(r.synergy);
 
-    const objective = safeNum(r.objective ?? r.obj ?? r.Objective);
-    const expected = safeNum(r.expected ?? r.exp ?? r.Expected);
-    const sd = safeNum(r.sd ?? r.SD ?? r.stdev ?? r.std);
-    const synergy = safeNum(r.synergy ?? r.syn ?? r.Synergy);
+    const slots = [1,2,3,4,5].map(i => slotObj(r, i));
 
-    const playersHtml = players.length
-      ? players.map(p => `<span class="chip"><span class="chip-name">${p}</span></span>`).join("")
-      : `<span class="text-xs opacity-70">No players field found</span>`;
+    // "Lineup consisting of each player" + (objective, expected, sd, synergy)
+    // We'll show a nice per-slot table too (mult, team, mu, boost)
+    const playersInline = slots.map(s => `
+      <span class="chip">
+        <span class="chip-name">${s.player}${s.team ? ` • ${s.team}` : ""}</span>
+      </span>
+    `).join("");
+
+    const slotRows = slots.map((s, idx) => `
+      <tr class="border-t border-white/10 hover-row">
+        <td class="p-2 font-semibold">${idx + 1}</td>
+        <td class="p-2">${s.player}</td>
+        <td class="p-2 text-center">${s.team}</td>
+        <td class="p-2 text-right">${s.mult.toFixed(1)}</td>
+        <td class="p-2 text-right">${s.mu.toFixed(2)}</td>
+        <td class="p-2 text-right text-emerald-200">${s.boost.toFixed(1)}</td>
+      </tr>
+    `).join("");
 
     bestLineupsList.insertAdjacentHTML("beforeend", `
       <div class="team-card hover-row">
         <div class="flex items-center justify-between gap-3 flex-wrap">
           <div class="flex items-center gap-3">
-            <div class="rank-badge">🔥 #${idx + 1}</div>
+            <div class="rank-badge">🔥 #${rank || ""}</div>
             <div class="text-lg font-bold tracking-wide">Lineup</div>
           </div>
 
@@ -691,8 +675,24 @@ function renderBestLineups() {
           </div>
         </div>
 
-        <div class="chips mt-3">
-          ${playersHtml}
+        <div class="chips mt-3">${playersInline}</div>
+
+        <div class="table-wrap mt-4">
+          <table class="w-full text-sm rounded-lg overflow-hidden">
+            <thead class="bg-white/10">
+              <tr>
+                <th class="p-2 text-left">Slot</th>
+                <th class="p-2 text-left">Player</th>
+                <th class="p-2 text-center">Team</th>
+                <th class="p-2 text-right">Mult</th>
+                <th class="p-2 text-right">Mu</th>
+                <th class="p-2 text-right">Boost</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white/5">
+              ${slotRows}
+            </tbody>
+          </table>
         </div>
       </div>
     `);
@@ -873,7 +873,7 @@ goHome();
 .th-btn:hover{ opacity: 1; }
 .th-arrow{ font-size: .9rem; opacity: .85; }
 
-/* Team / card styling */
+/* Card styling */
 .team-card{
   border-radius: 1rem;
   border: 1px solid rgba(255,255,255,.10);
