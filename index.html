@@ -406,270 +406,161 @@ async function loadLeague(lg, md) {
 }
 
 /* ================= SORTING HELPERS ================= */
+/* ===== REPLACE safeNum WITH THIS ===== */
 function safeNum(v) {
-  const n = Number(v);
+  if (v === null || v === undefined) return 0;
+
+  // allow numbers directly
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+
+  // parse numeric-ish strings robustly (commas, spaces, %)
+  const s = String(v).trim()
+    .replace(/,/g, "")        // 1,234.56 -> 1234.56
+    .replace(/%/g, "")        // 12% -> 12
+    .replace(/[^\d.+-eE]/g, ""); // strip any other junk
+
+  const n = Number(s);
   return Number.isFinite(n) ? n : 0;
 }
-function safeStr(v) {
-  return (v ?? "").toString().toLowerCase();
+
+/* ===== ADD THESE HELPERS (NEW) ===== */
+function normKey(k) {
+  return String(k || "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "_")       // spaces -> underscore
+    .replace(/[^\w]/g, "");     // remove weird chars
 }
-function setSort(key) {
-  if (sortKey === key) {
-    sortDir = (sortDir === "asc") ? "desc" : "asc";
-  } else {
-    sortKey = key;
-    sortDir = (key === "player" || key === "team") ? "asc" : "desc";
+
+function buildKeyMap(row) {
+  const map = {};
+  for (const k in row) {
+    map[normKey(k)] = row[k];
   }
-  renderTable();
-}
-function sortArrowFor(key) {
-  if (sortKey !== key) return `<span class="th-arrow opacity-40">↕</span>`;
-  return sortDir === "asc"
-    ? `<span class="th-arrow">↑</span>`
-    : `<span class="th-arrow">↓</span>`;
-}
-function th(label, key, alignRight=false, center=false) {
-  const align =
-    center ? "text-center" :
-    alignRight ? "text-right" : "text-left";
-  return `
-    <th class="p-2 ${align}">
-      <button class="th-btn" onclick="setSort('${key}')">
-        <span>${label}</span>
-        ${sortArrowFor(key)}
-      </button>
-    </th>
-  `;
+  return map;
 }
 
-/* ================= TABLE (SORTABLE) ================= */
-function renderTable() {
-  const search = (el.playerSearch.value || "").toLowerCase();
-
-  let rows = allData.filter(p =>
-    !search || (p.player || "").toLowerCase().includes(search)
-  );
-
-  if (sortKey) {
-    rows = rows.slice().sort((a, b) => {
-      let av, bv;
-
-      if (sortKey === "player" || sortKey === "team") {
-        av = safeStr(a[sortKey]);
-        bv = safeStr(b[sortKey]);
-        if (av < bv) return sortDir === "asc" ? -1 : 1;
-        if (av > bv) return sortDir === "asc" ? 1 : -1;
-        return 0;
-      }
-
-      av = safeNum(a[sortKey]);
-      bv = safeNum(b[sortKey]);
-      return sortDir === "asc" ? (av - bv) : (bv - av);
-    });
-  }
-
-  let html = `
-  <table class="w-full text-sm rounded-lg overflow-hidden">
-    <thead class="bg-white/10">
-      <tr>
-        ${th("Player","player")}
-        ${league === "nhl" ? `
-          ${th("Team","team",false,true)}
-          ${th("G","goals",true)}
-          ${th("A","assists",true)}
-          ${th("P","points",true)}
-          ${th("SOG","shots",true)}
-          ${th("BLK","blocks",true)}
-        ` : ``}
-        ${th("Proj","projection",true)}
-        ${th("Boost","boost",true)}
-        ${th("B1","b1",true)}
-        ${th("B2","b2",true)}
-        ${th("B3","b3",true)}
-        ${th("B4","b4",true)}
-        ${th("B5","b5",true)}
-      </tr>
-    </thead><tbody class="bg-white/5">`;
-
-  rows.forEach(p => {
-    html += `
-    <tr class="border-t border-white/10 hover-row">
-      <td class="p-2">${p.player ?? ""}</td>
-      ${league === "nhl" ? `
-        <td class="p-2 text-center">${p.team ?? ""}</td>
-        <td class="p-2 text-right">${safeNum(p.goals).toFixed(2)}</td>
-        <td class="p-2 text-right">${safeNum(p.assists).toFixed(2)}</td>
-        <td class="p-2 text-right">${safeNum(p.points).toFixed(2)}</td>
-        <td class="p-2 text-right">${safeNum(p.shots).toFixed(1)}</td>
-        <td class="p-2 text-right">${safeNum(p.blocks).toFixed(1)}</td>` : ``}
-      <td class="p-2 text-right">${safeNum(p.projection).toFixed(2)}</td>
-      <td class="p-2 text-right text-emerald-200">${safeNum(p.boost).toFixed(1)}</td>
-      <td class="p-2 text-right">${safeNum(p.b1).toFixed(2)}</td>
-      <td class="p-2 text-right">${safeNum(p.b2).toFixed(2)}</td>
-      <td class="p-2 text-right">${safeNum(p.b3).toFixed(2)}</td>
-      <td class="p-2 text-right">${safeNum(p.b4).toFixed(2)}</td>
-      <td class="p-2 text-right">${safeNum(p.b5).toFixed(2)}</td>
-    </tr>`;
-  });
-
-  el.projectionView.innerHTML = html + "</tbody></table>";
+function getVal(map, key, fallback = "") {
+  const v = map[normKey(key)];
+  return v === undefined || v === null ? fallback : v;
 }
 
-/* ================= LINEUP ================= */
-function computeBestLineupFromPool(pool) {
-  const mults = [2, 1.8, 1.6, 1.4, 1.2];
-  if (!Array.isArray(pool) || pool.length < 5) return null;
-
-  const perms = [];
-  (function permute(a, l) {
-    if (l === a.length) return perms.push(a.slice());
-    for (let i = l; i < a.length; i++) {
-      [a[l], a[i]] = [a[i], a[l]];
-      permute(a, l + 1);
-      [a[l], a[i]] = [a[i], a[l]];
-    }
-  })(mults.slice(), 0);
-
-  let best = { score: -1 };
-
-  function choose(start, picked) {
-    if (picked.length === 5) {
-      perms.forEach(m => {
-        let s = 0;
-        for (let i = 0; i < 5; i++) {
-          s += safeNum(picked[i].projection) * (m[i] + safeNum(picked[i].boost));
-        }
-        if (s > best.score)
-          best = { score: s, players: picked.slice(), mults: m.slice() };
-      });
-      return;
-    }
-    for (let i = start; i < pool.length; i++) {
-      choose(i + 1, picked.concat(pool[i]));
-    }
-  }
-
-  choose(0, []);
-  return best;
+/* ===== REPLACE slotObj WITH THIS ===== */
+function slotObj(rowMap, i) {
+  return {
+    mult: safeNum(getVal(rowMap, `slot${i}_mult`, 0)),
+    player: String(getVal(rowMap, `slot${i}_player`, "")).trim(),
+    team: String(getVal(rowMap, `slot${i}_team`, "")).trim(),
+    mu: safeNum(getVal(rowMap, `slot${i}_mu`, 0)),
+    boost: safeNum(getVal(rowMap, `slot${i}_boost`, 0)),
+  };
 }
 
-function computeLineup() {
-  const pool = [...allData]
-    .sort((a, b) => safeNum(b.b3) - safeNum(a.b3))
-    .slice(0, 20);
+/* ===== REPLACE renderBestLineups WITH THIS ===== */
+function renderBestLineups() {
+  bestLineupsList.innerHTML = "";
 
-  const best = computeBestLineupFromPool(pool);
-  if (!best) return;
-  renderLineup(best);
-}
-
-function renderLineup(best) {
-  el.lineupBody.innerHTML = "";
-
-  const rows = best.players.map((p, i) => ({
-    p,
-    m: best.mults[i],
-    s: safeNum(p.projection) * (best.mults[i] + safeNum(p.boost))
-  })).sort((a, b) => b.m - a.m);
-
-  rows.forEach(r => {
-    el.lineupBody.insertAdjacentHTML("beforeend", `
-      <tr class="border-t border-white/10 hover-row">
-        <td class="p-2">${r.p.player ?? ""}</td>
-        <td class="p-2 text-right">${safeNum(r.p.projection).toFixed(2)}</td>
-        <td class="p-2 text-right text-emerald-200">${safeNum(r.p.boost).toFixed(1)}</td>
-        <td class="p-2 text-right">${r.m.toFixed(1)}</td>
-        <td class="p-2 text-right font-bold">${safeNum(r.s).toFixed(2)}</td>
-      </tr>
-    `);
-  });
-
-  el.lineupTotal.textContent = best.score.toFixed(2);
-}
-
-/* ================= TEAM STACK RANKING LIST ================= */
-function playerStackValue(p) {
-  return safeNum(p.b3) + safeNum(p.b4) + safeNum(p.b5);
-}
-function buildTeamStackByB345(players) {
-  const mults = [2, 1.8, 1.6, 1.4, 1.2];
-  if (!Array.isArray(players) || players.length < 5) return null;
-
-  const picked = players
+  const rows = Array.isArray(bestLineups) ? bestLineups.slice() : [];
+  // Sort by rank if possible, otherwise just take first 10
+  const top10 = rows
     .slice()
-    .sort((a, b) => playerStackValue(b) - playerStackValue(a))
-    .slice(0, 5);
+    .sort((a, b) => safeNum(a.rank) - safeNum(b.rank))
+    .slice(0, 10);
 
-  const rows = picked
-    .slice()
-    .sort((a, b) => playerStackValue(b) - playerStackValue(a))
-    .map((p, i) => {
-      const val = playerStackValue(p);
-      const m = mults[i];
-      const score = val * m;
-      return { p, m, score };
-    });
-
-  const total = rows.reduce((s, r) => s + r.score, 0);
-  return { rows, total };
-}
-
-function computeRankedTeamStacks() {
-  el.teamRankList.innerHTML = "";
-
-  const byTeam = {};
-  allData.forEach(p => {
-    const t = (p.team ?? "").toString().trim();
-    if (!t) return;
-    if (!byTeam[t]) byTeam[t] = [];
-    byTeam[t].push(p);
-  });
-
-  const teams = Object.entries(byTeam)
-    .map(([team, players]) => {
-      const stack = buildTeamStackByB345(players);
-      if (!stack) return null;
-      return { team, ...stack };
-    })
-    .filter(Boolean)
-    .sort((a, b) => b.total - a.total);
-
-  if (!teams.length) {
-    el.teamRankList.innerHTML = `
+  if (!top10.length) {
+    bestLineupsList.innerHTML = `
       <div class="p-4 rounded-xl border border-white/10 bg-white/5">
-        <div class="font-semibold">No team data found</div>
+        <div class="font-semibold">No lineups found</div>
       </div>
     `;
     return;
   }
 
-  teams.forEach((t, idx) => {
-    const medal =
-      idx === 0 ? "🥇" :
-      idx === 1 ? "🥈" :
-      idx === 2 ? "🥉" : "🏒";
+  // DEBUG: show key sample so you can confirm what's coming in
+  const sampleMap = buildKeyMap(top10[0]);
+  const sampleKeys = Object.keys(sampleMap).slice(0, 60).join(", ");
+  bestLineupsList.insertAdjacentHTML("beforeend", `
+    <div class="p-3 rounded-xl border border-white/10 bg-white/5">
+      <div class="text-xs uppercase tracking-widest opacity-70">Debug (first row keys)</div>
+      <div class="text-xs opacity-80 mt-1 break-words">${sampleKeys}</div>
+    </div>
+  `);
 
-    const playersInline = t.rows.map(r => `
-      <span class="chip"><span class="chip-name">${r.p.player ?? ""}</span></span>
+  top10.forEach(raw => {
+    const m = buildKeyMap(raw);
+
+    const rank = safeNum(getVal(m, "rank", 0));
+    const objective = safeNum(getVal(m, "objective", 0));
+    const expected = safeNum(getVal(m, "expected", 0));
+    const sd = safeNum(getVal(m, "sd", 0));
+    const synergy = safeNum(getVal(m, "synergy", 0));
+
+    const slots = [1,2,3,4,5].map(i => slotObj(m, i));
+
+    const playersInline = slots.map(s => `
+      <span class="chip">
+        <span class="chip-name">${s.player || "(missing)"}${s.team ? ` • ${s.team}` : ""}</span>
+      </span>
     `).join("");
 
-    el.teamRankList.insertAdjacentHTML("beforeend", `
+    const slotRows = slots.map((s, idx) => `
+      <tr class="border-t border-white/10 hover-row">
+        <td class="p-2 font-semibold">${idx + 1}</td>
+        <td class="p-2">${s.player || ""}</td>
+        <td class="p-2 text-center">${s.team || ""}</td>
+        <td class="p-2 text-right">${s.mult.toFixed(1)}</td>
+        <td class="p-2 text-right">${s.mu.toFixed(2)}</td>
+        <td class="p-2 text-right text-emerald-200">${s.boost.toFixed(1)}</td>
+      </tr>
+    `).join("");
+
+    bestLineupsList.insertAdjacentHTML("beforeend", `
       <div class="team-card hover-row">
         <div class="flex items-center justify-between gap-3 flex-wrap">
           <div class="flex items-center gap-3">
-            <div class="rank-badge">${medal} #${idx + 1}</div>
-            <div>
-              <div class="text-lg font-bold tracking-wide">${t.team}</div>
-            </div>
+            <div class="rank-badge">🔥 #${rank || ""}</div>
+            <div class="text-lg font-bold tracking-wide">Lineup</div>
           </div>
 
-          <div class="text-right">
-            <div class="text-xs uppercase tracking-widest opacity-70">Total Score</div>
-            <div class="text-xl font-extrabold text-emerald-200">${t.total.toFixed(2)}</div>
+          <div class="flex flex-wrap gap-3 text-right">
+            <div>
+              <div class="text-xs uppercase tracking-widest opacity-70">Objective</div>
+              <div class="text-lg font-extrabold text-emerald-200">${objective.toFixed(2)}</div>
+            </div>
+            <div>
+              <div class="text-xs uppercase tracking-widest opacity-70">Expected</div>
+              <div class="text-lg font-extrabold">${expected.toFixed(2)}</div>
+            </div>
+            <div>
+              <div class="text-xs uppercase tracking-widest opacity-70">SD</div>
+              <div class="text-lg font-extrabold">${sd.toFixed(2)}</div>
+            </div>
+            <div>
+              <div class="text-xs uppercase tracking-widest opacity-70">Synergy</div>
+              <div class="text-lg font-extrabold">${synergy.toFixed(2)}</div>
+            </div>
           </div>
         </div>
 
         <div class="chips mt-3">${playersInline}</div>
+
+        <div class="table-wrap mt-4">
+          <table class="w-full text-sm rounded-lg overflow-hidden">
+            <thead class="bg-white/10">
+              <tr>
+                <th class="p-2 text-left">Slot</th>
+                <th class="p-2 text-left">Player</th>
+                <th class="p-2 text-center">Team</th>
+                <th class="p-2 text-right">Mult</th>
+                <th class="p-2 text-right">Mu</th>
+                <th class="p-2 text-right">Boost</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white/5">
+              ${slotRows}
+            </tbody>
+          </table>
+        </div>
       </div>
     `);
   });
