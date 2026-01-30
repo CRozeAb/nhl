@@ -39,7 +39,8 @@
 
     <div class="grid grid-cols-1 md:grid-cols-[260px,1fr] gap-4">
 
-      <aside class="glass-card p-3 md:p-4">
+      <!-- NAV SIDEBAR: hidden on home, shown on other pages -->
+      <aside id="navAside" class="glass-card p-3 md:p-4 hidden">
         <div class="mb-3">
           <div class="text-xs uppercase tracking-widest opacity-70 mb-2">Navigation</div>
         </div>
@@ -63,6 +64,13 @@
             <span class="nav-arrow">→</span>
           </button>
 
+          <!-- NEW -->
+          <button onclick="loadLeague('nhl','best_lineups')" class="nav-btn">
+            <span class="nav-icon">🔥</span>
+            <span class="flex-1 text-left"><div class="font-semibold">NHL Top 10 Lineups</div></span>
+            <span class="nav-arrow">→</span>
+          </button>
+
           <div class="h-px my-2 bg-white/10"></div>
 
           <button onclick="loadLeague('nba','proj')" class="nav-btn">
@@ -80,13 +88,55 @@
       </aside>
 
       <main class="glass-card p-3 md:p-4 min-h-[420px]">
+        <!-- MAIN PAGE IS NAVIGATION -->
         <div id="homeView" class="fade-in">
-          <div class="hero-card p-6 md:p-8">
+          <div class="hero-card p-6 md:p-8 mb-4">
             <div class="hero-glow" aria-hidden="true"></div>
             <div class="relative z-10">
               <div class="text-xs uppercase tracking-[0.25em] opacity-70 mb-2">Main Menu</div>
-              <div class="text-2xl md:text-3xl font-extrabold leading-tight">Choose a tab to load</div>
+              <div class="text-2xl md:text-3xl font-extrabold leading-tight">Choose a tab</div>
+              <div class="mt-2 text-sm opacity-80">Navigation is here on the main page. Sidebar only appears after you open a page.</div>
             </div>
+          </div>
+
+          <!-- Big nav buttons on main page -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button onclick="loadLeague('nhl','proj')" class="nav-btn">
+              <span class="nav-icon">🏒</span>
+              <span class="flex-1 text-left"><div class="font-semibold">NHL Projections</div></span>
+              <span class="nav-arrow">→</span>
+            </button>
+
+            <button onclick="loadLeague('nhl','lineup')" class="nav-btn">
+              <span class="nav-icon">📋</span>
+              <span class="flex-1 text-left"><div class="font-semibold">NHL Draft</div></span>
+              <span class="nav-arrow">→</span>
+            </button>
+
+            <button onclick="loadLeague('nhl','team')" class="nav-btn">
+              <span class="nav-icon">🏆</span>
+              <span class="flex-1 text-left"><div class="font-semibold">NHL Best Team</div></span>
+              <span class="nav-arrow">→</span>
+            </button>
+
+            <!-- NEW -->
+            <button onclick="loadLeague('nhl','best_lineups')" class="nav-btn">
+              <span class="nav-icon">🔥</span>
+              <span class="flex-1 text-left"><div class="font-semibold">NHL Top 10 Lineups</div></span>
+              <span class="nav-arrow">→</span>
+            </button>
+
+            <button onclick="loadLeague('nba','proj')" class="nav-btn">
+              <span class="nav-icon">🏀</span>
+              <span class="flex-1 text-left"><div class="font-semibold">NBA Projections</div></span>
+              <span class="nav-arrow">→</span>
+            </button>
+
+            <button onclick="loadLeague('nba','lineup')" class="nav-btn">
+              <span class="nav-icon">📋</span>
+              <span class="flex-1 text-left"><div class="font-semibold">NBA Draft</div></span>
+              <span class="nav-arrow">→</span>
+            </button>
           </div>
         </div>
 
@@ -126,7 +176,7 @@
           </div>
         </div>
 
-        <!-- TEAM VIEW: Ranked team list -->
+        <!-- TEAM VIEW -->
         <div id="teamView" class="hidden mt-2 fade-in">
           <div class="flex flex-wrap items-end justify-between gap-2 mb-3">
             <div>
@@ -138,6 +188,21 @@
           </div>
 
           <div id="teamRankList" class="space-y-3"></div>
+        </div>
+
+        <!-- NEW: TOP 10 LINEUPS VIEW -->
+        <div id="bestLineupsView" class="hidden mt-2 fade-in">
+          <div class="flex flex-wrap items-end justify-between gap-2 mb-3">
+            <div>
+              <h2 class="text-2xl font-bold">Top 10 Lineups</h2>
+              <div class="text-xs opacity-70 mt-1">From <span class="font-semibold">NHL_BEST_LINEUPS</span></div>
+            </div>
+            <div class="text-xs opacity-70">
+              Showing 10 lineups
+            </div>
+          </div>
+
+          <div id="bestLineupsList" class="space-y-4"></div>
         </div>
 
       </main>
@@ -155,8 +220,11 @@ const BASE_URL =
 "https://script.google.com/macros/s/AKfycbyINrZV6oyDhAQKeeuui5TOhTMKsZABb0SHYHbN4LXPFNBRykOBj0rvMAjXGMdJtf6U/exec";
 
 let league = "nhl";
-let mode = "proj";
+let mode = "home";
 let allData = [];
+
+// NEW: best lineups data
+let bestLineups = [];
 
 // NEW: sorting state for projections table
 let sortKey = null;   // e.g. "projection", "b3", "player"
@@ -168,11 +236,9 @@ function startTransition() {
   o.classList.remove("hidden");
   document.documentElement.classList.add("is-transitioning");
 }
-
 function endTransition() {
   const o = document.getElementById("transitionOverlay");
   o.classList.add("out");
-
   setTimeout(() => {
     o.classList.add("hidden");
     o.classList.remove("out");
@@ -180,64 +246,98 @@ function endTransition() {
   }, 240);
 }
 
+/* ===== UI helpers ===== */
+function setSidebarVisible(isVisible) {
+  const nav = document.getElementById("navAside");
+  nav.classList.toggle("hidden", !isVisible);
+}
+function setViewsVisible({ home=false, proj=false, lineup=false, team=false, bestLineupsPage=false, search=false }) {
+  homeView.classList.toggle("hidden", !home);
+  projectionView.classList.toggle("hidden", !proj);
+  lineupView.classList.toggle("hidden", !lineup);
+  teamView.classList.toggle("hidden", !team);
+  bestLineupsView.classList.toggle("hidden", !bestLineupsPage);
+  searchWrap.classList.toggle("hidden", !search);
+}
+
+/* ===== Home ===== */
 async function goHome() {
   startTransition();
 
   mode = "home";
   pageTitle.textContent = "Main Menu";
 
-  homeView.classList.remove("hidden");
-  searchWrap.classList.add("hidden");
-  projectionView.classList.add("hidden");
-  lineupView.classList.add("hidden");
-  teamView.classList.add("hidden");
-  loading.classList.add("hidden");
+  setSidebarVisible(false);                 // sidebar only on pages (not home)
+  setViewsVisible({ home:true });           // main page = navigation
 
+  loading.classList.add("hidden");
   endTransition();
 }
 
+/* ===== Page loading ===== */
 async function loadLeague(lg, md) {
   startTransition();
 
   league = lg;
   mode = md;
 
-  // reset sorting when switching leagues/modes to keep it clean
+  // reset sorting when switching leagues/modes
   sortKey = null;
   sortDir = "desc";
+
+  // Sidebar appears on "certain page" (anything not home)
+  setSidebarVisible(true);
 
   pageTitle.textContent =
     lg.toUpperCase() + (
       md === "proj" ? " Projections" :
       md === "lineup" ? " Today’s Draft" :
-      " Best Team"
+      md === "team" ? " Best Team" :
+      md === "best_lineups" ? " Top 10 Lineups" :
+      ""
     );
 
-  homeView.classList.toggle("hidden", true);
+  // Hide everything first
+  setViewsVisible({ home:false, proj:false, lineup:false, team:false, bestLineupsPage:false, search:false });
 
-  projectionView.classList.toggle("hidden", md !== "proj");
-  lineupView.classList.toggle("hidden", md !== "lineup");
-  teamView.classList.toggle("hidden", md !== "team");
-  searchWrap.classList.toggle("hidden", md !== "proj");
+  // Toggle the correct view
+  const showProj = (md === "proj");
+  const showLineup = (md === "lineup");
+  const showTeam = (md === "team");
+  const showBestLineups = (md === "best_lineups");
+
+  setViewsVisible({
+    proj: showProj,
+    lineup: showLineup,
+    team: showTeam,
+    bestLineupsPage: showBestLineups,
+    search: showProj
+  });
 
   loading.classList.remove("hidden");
 
   try {
-    const res = await fetch(`${BASE_URL}?league=${lg}`);
-    allData = await res.json();
+    if (md === "best_lineups") {
+      // NEW endpoint parameter "sheet=NHL_BEST_LINEUPS"
+      const res = await fetch(`${BASE_URL}?league=${lg}&sheet=NHL_BEST_LINEUPS`);
+      bestLineups = await res.json();
+    } else {
+      const res = await fetch(`${BASE_URL}?league=${lg}`);
+      allData = await res.json();
+    }
   } finally {
     loading.classList.add("hidden");
   }
 
   if (md === "proj") renderTable();
   else if (md === "lineup") computeLineup();
-  else computeRankedTeamStacks();
+  else if (md === "team") computeRankedTeamStacks();
+  else if (md === "best_lineups") renderBestLineups();
 
   endTransition();
 }
 
 /* ================= SORTING HELPERS ================= */
-
 function safeNum(v) {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
@@ -275,16 +375,13 @@ function th(label, key, alignRight=false, center=false) {
 }
 
 /* ================= TABLE (SORTABLE) ================= */
-
 function renderTable() {
   const search = playerSearch.value.toLowerCase();
 
-  // Filter first
   let rows = allData.filter(p =>
     !search || (p.player || "").toLowerCase().includes(search)
   );
 
-  // Sort based on current sortKey
   if (sortKey) {
     rows = rows.slice().sort((a, b) => {
       let av, bv;
@@ -351,7 +448,6 @@ function renderTable() {
 }
 
 /* ================= LINEUP ================= */
-
 function computeBestLineupFromPool(pool) {
   const mults = [2, 1.8, 1.6, 1.4, 1.2];
   if (!Array.isArray(pool) || pool.length < 5) return null;
@@ -424,11 +520,9 @@ function renderLineup(best) {
 }
 
 /* ================= TEAM STACK RANKING LIST ================= */
-
 function playerStackValue(p) {
   return safeNum(p.b3) + safeNum(p.b4) + safeNum(p.b5);
 }
-
 function buildTeamStackByB345(players) {
   const mults = [2, 1.8, 1.6, 1.4, 1.2];
   if (!Array.isArray(players) || players.length < 5) return null;
@@ -451,7 +545,6 @@ function buildTeamStackByB345(players) {
   const total = rows.reduce((s, r) => s + r.score, 0);
   return { rows, total };
 }
-
 function computeRankedTeamStacks() {
   teamRankList.innerHTML = "";
 
@@ -513,6 +606,93 @@ function computeRankedTeamStacks() {
 
         <div class="chips mt-3">
           ${playersInline}
+        </div>
+      </div>
+    `);
+  });
+}
+
+/* ================= NEW: TOP 10 LINEUPS =================
+   Expected NHL_BEST_LINEUPS rows to have something like:
+   {
+     players: ["A", "B", "C", "D", "E"] OR players: "A, B, C, D, E"
+     objective: number
+     expected: number
+     sd: number
+     synergy: number
+   }
+   If your sheet uses different column names, adjust the key mapping below.
+*/
+function normalizePlayersField(row) {
+  if (Array.isArray(row.players)) return row.players;
+  if (typeof row.players === "string") {
+    return row.players.split(",").map(s => s.trim()).filter(Boolean);
+  }
+
+  // fallback: try common sheet column names like p1..p5
+  const maybe = ["p1","p2","p3","p4","p5"].map(k => row[k]).filter(Boolean);
+  if (maybe.length) return maybe.map(x => x.toString().trim());
+
+  return [];
+}
+function renderBestLineups() {
+  bestLineupsList.innerHTML = "";
+
+  const rows = Array.isArray(bestLineups) ? bestLineups.slice() : [];
+  const top10 = rows.slice(0, 10);
+
+  if (!top10.length) {
+    bestLineupsList.innerHTML = `
+      <div class="p-4 rounded-xl border border-white/10 bg-white/5">
+        <div class="font-semibold">No lineups found</div>
+        <div class="text-xs opacity-70 mt-1">Make sure your Apps Script returns data for sheet NHL_BEST_LINEUPS.</div>
+      </div>
+    `;
+    return;
+  }
+
+  top10.forEach((r, idx) => {
+    const players = normalizePlayersField(r);
+
+    const objective = safeNum(r.objective ?? r.obj ?? r.Objective);
+    const expected = safeNum(r.expected ?? r.exp ?? r.Expected);
+    const sd = safeNum(r.sd ?? r.SD ?? r.stdev ?? r.std);
+    const synergy = safeNum(r.synergy ?? r.syn ?? r.Synergy);
+
+    const playersHtml = players.length
+      ? players.map(p => `<span class="chip"><span class="chip-name">${p}</span></span>`).join("")
+      : `<span class="text-xs opacity-70">No players field found</span>`;
+
+    bestLineupsList.insertAdjacentHTML("beforeend", `
+      <div class="team-card hover-row">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+          <div class="flex items-center gap-3">
+            <div class="rank-badge">🔥 #${idx + 1}</div>
+            <div class="text-lg font-bold tracking-wide">Lineup</div>
+          </div>
+
+          <div class="flex flex-wrap gap-3 text-right">
+            <div>
+              <div class="text-xs uppercase tracking-widest opacity-70">Objective</div>
+              <div class="text-lg font-extrabold text-emerald-200">${objective.toFixed(2)}</div>
+            </div>
+            <div>
+              <div class="text-xs uppercase tracking-widest opacity-70">Expected</div>
+              <div class="text-lg font-extrabold">${expected.toFixed(2)}</div>
+            </div>
+            <div>
+              <div class="text-xs uppercase tracking-widest opacity-70">SD</div>
+              <div class="text-lg font-extrabold">${sd.toFixed(2)}</div>
+            </div>
+            <div>
+              <div class="text-xs uppercase tracking-widest opacity-70">Synergy</div>
+              <div class="text-lg font-extrabold">${synergy.toFixed(2)}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="chips mt-3">
+          ${playersHtml}
         </div>
       </div>
     `);
@@ -680,7 +860,7 @@ goHome();
   50%{ transform: scale(1.18); opacity: 1; }
 }
 
-/* NEW: sortable header button */
+/* Sortable header button */
 .th-btn{
   width: 100%;
   display:flex;
@@ -690,15 +870,10 @@ goHome();
   font-weight: 700;
   opacity: .95;
 }
-.th-btn:hover{
-  opacity: 1;
-}
-.th-arrow{
-  font-size: .9rem;
-  opacity: .85;
-}
+.th-btn:hover{ opacity: 1; }
+.th-arrow{ font-size: .9rem; opacity: .85; }
 
-/* Team rank list styling */
+/* Team / card styling */
 .team-card{
   border-radius: 1rem;
   border: 1px solid rgba(255,255,255,.10);
