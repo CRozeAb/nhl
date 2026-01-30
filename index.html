@@ -33,7 +33,7 @@
       </div>
 
       <div class="flex gap-2 flex-wrap">
-        <button onclick="goHome()" class="btn btn-soft">Home</button>
+        <button id="homeBtn" class="btn btn-soft">Home</button>
       </div>
     </div>
 
@@ -46,25 +46,25 @@
         </div>
 
         <div class="flex flex-col gap-2">
-          <button onclick="loadLeague('nhl','proj')" class="nav-btn">
+          <button data-lg="nhl" data-md="proj" class="nav-btn">
             <span class="nav-icon">🏒</span>
             <span class="flex-1 text-left"><div class="font-semibold">NHL Projections</div></span>
             <span class="nav-arrow">→</span>
           </button>
 
-          <button onclick="loadLeague('nhl','lineup')" class="nav-btn">
+          <button data-lg="nhl" data-md="lineup" class="nav-btn">
             <span class="nav-icon">📋</span>
             <span class="flex-1 text-left"><div class="font-semibold">NHL Draft</div></span>
             <span class="nav-arrow">→</span>
           </button>
 
-          <button onclick="loadLeague('nhl','team')" class="nav-btn">
+          <button data-lg="nhl" data-md="team" class="nav-btn">
             <span class="nav-icon">🏆</span>
             <span class="flex-1 text-left"><div class="font-semibold">NHL Best Team</div></span>
             <span class="nav-arrow">→</span>
           </button>
 
-          <button onclick="loadLeague('nhl','best_lineups')" class="nav-btn">
+          <button data-lg="nhl" data-md="best_lineups" class="nav-btn">
             <span class="nav-icon">🔥</span>
             <span class="flex-1 text-left"><div class="font-semibold">NHL Top 10 Lineups</div></span>
             <span class="nav-arrow">→</span>
@@ -72,13 +72,13 @@
 
           <div class="h-px my-2 bg-white/10"></div>
 
-          <button onclick="loadLeague('nba','proj')" class="nav-btn">
+          <button data-lg="nba" data-md="proj" class="nav-btn">
             <span class="nav-icon">🏀</span>
             <span class="flex-1 text-left"><div class="font-semibold">NBA Projections</div></span>
             <span class="nav-arrow">→</span>
           </button>
 
-          <button onclick="loadLeague('nba','lineup')" class="nav-btn">
+          <button data-lg="nba" data-md="lineup" class="nav-btn">
             <span class="nav-icon">📋</span>
             <span class="flex-1 text-left"><div class="font-semibold">NBA Draft</div></span>
             <span class="nav-arrow">→</span>
@@ -87,6 +87,13 @@
       </aside>
 
       <main class="glass-card p-3 md:p-4 min-h-[420px]">
+
+        <!-- FRONTEND ERROR BOX (so you see what’s wrong) -->
+        <div id="errorBox" class="hidden mb-4 p-3 rounded-xl border border-red-400/30 bg-red-500/10">
+          <div class="font-bold text-red-200">Frontend error</div>
+          <div id="errorMsg" class="text-sm opacity-90 mt-1 whitespace-pre-wrap"></div>
+        </div>
+
         <!-- MAIN PAGE IS NAVIGATION -->
         <div id="homeView" class="fade-in">
           <div class="hero-card p-6 md:p-8 mb-4">
@@ -99,37 +106,37 @@
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <button onclick="loadLeague('nhl','proj')" class="nav-btn">
+            <button data-lg="nhl" data-md="proj" class="nav-btn nav-main">
               <span class="nav-icon">🏒</span>
               <span class="flex-1 text-left"><div class="font-semibold">NHL Projections</div></span>
               <span class="nav-arrow">→</span>
             </button>
 
-            <button onclick="loadLeague('nhl','lineup')" class="nav-btn">
+            <button data-lg="nhl" data-md="lineup" class="nav-btn nav-main">
               <span class="nav-icon">📋</span>
               <span class="flex-1 text-left"><div class="font-semibold">NHL Draft</div></span>
               <span class="nav-arrow">→</span>
             </button>
 
-            <button onclick="loadLeague('nhl','team')" class="nav-btn">
+            <button data-lg="nhl" data-md="team" class="nav-btn nav-main">
               <span class="nav-icon">🏆</span>
               <span class="flex-1 text-left"><div class="font-semibold">NHL Best Team</div></span>
               <span class="nav-arrow">→</span>
             </button>
 
-            <button onclick="loadLeague('nhl','best_lineups')" class="nav-btn">
+            <button data-lg="nhl" data-md="best_lineups" class="nav-btn nav-main">
               <span class="nav-icon">🔥</span>
               <span class="flex-1 text-left"><div class="font-semibold">NHL Top 10 Lineups</div></span>
               <span class="nav-arrow">→</span>
             </button>
 
-            <button onclick="loadLeague('nba','proj')" class="nav-btn">
+            <button data-lg="nba" data-md="proj" class="nav-btn nav-main">
               <span class="nav-icon">🏀</span>
               <span class="flex-1 text-left"><div class="font-semibold">NBA Projections</div></span>
               <span class="nav-arrow">→</span>
             </button>
 
-            <button onclick="loadLeague('nba','lineup')" class="nav-btn">
+            <button data-lg="nba" data-md="lineup" class="nav-btn nav-main">
               <span class="nav-icon">📋</span>
               <span class="flex-1 text-left"><div class="font-semibold">NBA Draft</div></span>
               <span class="nav-arrow">→</span>
@@ -208,9 +215,37 @@
 </div>
 
 <script>
+/* ================= CONFIG ================= */
 const BASE_URL =
-"https://script.google.com/macros/s/AKfycbyINrZV6oyDhAQKeeuui5TOhTMKsZABb0SHYHbN4LXPFNBRykOBj0rvMAjXGMdJtf6U/exec";
+  "https://script.google.com/macros/s/AKfycbyINrZV6oyDhAQKeeuui5TOhTMKsZABb0SHYHbN4LXPFNBRykOBj0rvMAjXGMdJtf6U/exec";
 
+/* ================= DOM REFS (NO GLOBAL-ID RELYING) ================= */
+const el = {
+  pageTitle: document.getElementById("pageTitle"),
+  homeBtn: document.getElementById("homeBtn"),
+  navAside: document.getElementById("navAside"),
+
+  errorBox: document.getElementById("errorBox"),
+  errorMsg: document.getElementById("errorMsg"),
+
+  homeView: document.getElementById("homeView"),
+  searchWrap: document.getElementById("searchWrap"),
+  playerSearch: document.getElementById("playerSearch"),
+  loading: document.getElementById("loading"),
+
+  projectionView: document.getElementById("projectionView"),
+  lineupView: document.getElementById("lineupView"),
+  lineupBody: document.getElementById("lineupBody"),
+  lineupTotal: document.getElementById("lineupTotal"),
+
+  teamView: document.getElementById("teamView"),
+  teamRankList: document.getElementById("teamRankList"),
+
+  bestLineupsView: document.getElementById("bestLineupsView"),
+  bestLineupsList: document.getElementById("bestLineupsList"),
+};
+
+/* ================= STATE ================= */
 let league = "nhl";
 let mode = "home";
 let allData = [];
@@ -219,7 +254,17 @@ let bestLineups = [];
 let sortKey = null;
 let sortDir = "desc";
 
-/* ===== Blur-only transition during loading ===== */
+/* ================= ERROR UI ================= */
+function clearError() {
+  el.errorBox.classList.add("hidden");
+  el.errorMsg.textContent = "";
+}
+function showError(msg) {
+  el.errorBox.classList.remove("hidden");
+  el.errorMsg.textContent = msg;
+}
+
+/* ================= TRANSITION ================= */
 function startTransition() {
   const o = document.getElementById("transitionOverlay");
   o.classList.remove("hidden");
@@ -235,36 +280,72 @@ function endTransition() {
   }, 240);
 }
 
-/* ===== UI helpers ===== */
+/* ================= VIEW HELPERS ================= */
 function setSidebarVisible(isVisible) {
-  navAside.classList.toggle("hidden", !isVisible);
+  el.navAside.classList.toggle("hidden", !isVisible);
 }
 function setViewsVisible({ home=false, proj=false, lineup=false, team=false, bestLineupsPage=false, search=false }) {
-  homeView.classList.toggle("hidden", !home);
-  projectionView.classList.toggle("hidden", !proj);
-  lineupView.classList.toggle("hidden", !lineup);
-  teamView.classList.toggle("hidden", !team);
-  bestLineupsView.classList.toggle("hidden", !bestLineupsPage);
-  searchWrap.classList.toggle("hidden", !search);
+  el.homeView.classList.toggle("hidden", !home);
+  el.projectionView.classList.toggle("hidden", !proj);
+  el.lineupView.classList.toggle("hidden", !lineup);
+  el.teamView.classList.toggle("hidden", !team);
+  el.bestLineupsView.classList.toggle("hidden", !bestLineupsPage);
+  el.searchWrap.classList.toggle("hidden", !search);
 }
 
-/* ===== Home ===== */
+/* ================= SAFE PARSING ================= */
+async function fetchJsonWithDebug(url) {
+  const res = await fetch(url, { cache: "no-store" });
+  const contentType = (res.headers.get("content-type") || "").toLowerCase();
+  const text = await res.text();
+
+  if (!res.ok) {
+    throw new Error(`Fetch failed: ${res.status} ${res.statusText}\nURL: ${url}\n\nBody:\n${text.slice(0, 600)}`);
+  }
+
+  // Apps Script sometimes returns HTML even with 200
+  if (!contentType.includes("application/json")) {
+    // try parse anyway; if fails, show raw
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw new Error(`Non-JSON response (content-type: ${contentType || "unknown"})\nURL: ${url}\n\nBody:\n${text.slice(0, 600)}`);
+    }
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(`JSON parse error\nURL: ${url}\n\nBody:\n${text.slice(0, 600)}`);
+  }
+}
+
+function unwrapToArray(x) {
+  if (Array.isArray(x)) return x;
+  if (x && Array.isArray(x.data)) return x.data;
+  if (x && Array.isArray(x.rows)) return x.rows;
+  if (x && Array.isArray(x.items)) return x.items;
+  return []; // fallback
+}
+
+/* ================= NAV ================= */
 async function goHome() {
   startTransition();
+  clearError();
 
   mode = "home";
-  pageTitle.textContent = "Main Menu";
+  el.pageTitle.textContent = "Main Menu";
 
   setSidebarVisible(false);
   setViewsVisible({ home:true });
 
-  loading.classList.add("hidden");
+  el.loading.classList.add("hidden");
   endTransition();
 }
 
-/* ===== Page loading ===== */
 async function loadLeague(lg, md) {
   startTransition();
+  clearError();
 
   league = lg;
   mode = md;
@@ -274,7 +355,7 @@ async function loadLeague(lg, md) {
 
   setSidebarVisible(true);
 
-  pageTitle.textContent =
+  el.pageTitle.textContent =
     lg.toUpperCase() + (
       md === "proj" ? " Projections" :
       md === "lineup" ? " Today’s Draft" :
@@ -298,27 +379,30 @@ async function loadLeague(lg, md) {
     search: showProj
   });
 
-  loading.classList.remove("hidden");
+  el.loading.classList.remove("hidden");
 
   try {
     if (md === "best_lineups") {
-      // expects your web app to route this to the NHL_BEST_LINEUPS sheet
-      const res = await fetch(`${BASE_URL}?league=${lg}&sheet=NHL_BEST_LINEUPS`);
-      bestLineups = await res.json();
+      const url = `${BASE_URL}?league=${lg}&sheet=NHL_BEST_LINEUPS`;
+      const json = await fetchJsonWithDebug(url);
+      bestLineups = unwrapToArray(json);
     } else {
-      const res = await fetch(`${BASE_URL}?league=${lg}`);
-      allData = await res.json();
+      const url = `${BASE_URL}?league=${lg}`;
+      const json = await fetchJsonWithDebug(url);
+      allData = unwrapToArray(json);
     }
+
+    if (md === "proj") renderTable();
+    else if (md === "lineup") computeLineup();
+    else if (md === "team") computeRankedTeamStacks();
+    else if (md === "best_lineups") renderBestLineups();
+  } catch (e) {
+    console.error(e);
+    showError(String(e.message || e));
   } finally {
-    loading.classList.add("hidden");
+    el.loading.classList.add("hidden");
+    endTransition();
   }
-
-  if (md === "proj") renderTable();
-  else if (md === "lineup") computeLineup();
-  else if (md === "team") computeRankedTeamStacks();
-  else if (md === "best_lineups") renderBestLineups();
-
-  endTransition();
 }
 
 /* ================= SORTING HELPERS ================= */
@@ -360,7 +444,7 @@ function th(label, key, alignRight=false, center=false) {
 
 /* ================= TABLE (SORTABLE) ================= */
 function renderTable() {
-  const search = playerSearch.value.toLowerCase();
+  const search = (el.playerSearch.value || "").toLowerCase();
 
   let rows = allData.filter(p =>
     !search || (p.player || "").toLowerCase().includes(search)
@@ -428,7 +512,7 @@ function renderTable() {
     </tr>`;
   });
 
-  projectionView.innerHTML = html + "</tbody></table>";
+  el.projectionView.innerHTML = html + "</tbody></table>";
 }
 
 /* ================= LINEUP ================= */
@@ -468,6 +552,7 @@ function computeBestLineupFromPool(pool) {
   choose(0, []);
   return best;
 }
+
 function computeLineup() {
   const pool = [...allData]
     .sort((a, b) => safeNum(b.b3) - safeNum(a.b3))
@@ -477,8 +562,9 @@ function computeLineup() {
   if (!best) return;
   renderLineup(best);
 }
+
 function renderLineup(best) {
-  lineupBody.innerHTML = "";
+  el.lineupBody.innerHTML = "";
 
   const rows = best.players.map((p, i) => ({
     p,
@@ -487,7 +573,7 @@ function renderLineup(best) {
   })).sort((a, b) => b.m - a.m);
 
   rows.forEach(r => {
-    lineupBody.insertAdjacentHTML("beforeend", `
+    el.lineupBody.insertAdjacentHTML("beforeend", `
       <tr class="border-t border-white/10 hover-row">
         <td class="p-2">${r.p.player ?? ""}</td>
         <td class="p-2 text-right">${safeNum(r.p.projection).toFixed(2)}</td>
@@ -498,7 +584,7 @@ function renderLineup(best) {
     `);
   });
 
-  lineupTotal.textContent = best.score.toFixed(2);
+  el.lineupTotal.textContent = best.score.toFixed(2);
 }
 
 /* ================= TEAM STACK RANKING LIST ================= */
@@ -527,8 +613,9 @@ function buildTeamStackByB345(players) {
   const total = rows.reduce((s, r) => s + r.score, 0);
   return { rows, total };
 }
+
 function computeRankedTeamStacks() {
-  teamRankList.innerHTML = "";
+  el.teamRankList.innerHTML = "";
 
   const byTeam = {};
   allData.forEach(p => {
@@ -548,7 +635,7 @@ function computeRankedTeamStacks() {
     .sort((a, b) => b.total - a.total);
 
   if (!teams.length) {
-    teamRankList.innerHTML = `
+    el.teamRankList.innerHTML = `
       <div class="p-4 rounded-xl border border-white/10 bg-white/5">
         <div class="font-semibold">No team data found</div>
       </div>
@@ -566,7 +653,7 @@ function computeRankedTeamStacks() {
       <span class="chip"><span class="chip-name">${r.p.player ?? ""}</span></span>
     `).join("");
 
-    teamRankList.insertAdjacentHTML("beforeend", `
+    el.teamRankList.insertAdjacentHTML("beforeend", `
       <div class="team-card hover-row">
         <div class="flex items-center justify-between gap-3 flex-wrap">
           <div class="flex items-center gap-3">
@@ -588,32 +675,34 @@ function computeRankedTeamStacks() {
   });
 }
 
-/* ================= TOP 10 LINEUPS (MATCHES YOUR HEADERS) ================= */
-
+/* ================= TOP 10 LINEUPS (YOUR HEADERS) ================= */
 function slotObj(r, i) {
   return {
     mult: safeNum(r[`slot${i}_mult`]),
-    player: r[`slot${i}_player`] ?? "",
-    team: r[`slot${i}_team`] ?? "",
+    player: (r[`slot${i}_player`] ?? "").toString(),
+    team: (r[`slot${i}_team`] ?? "").toString(),
     mu: safeNum(r[`slot${i}_mu`]),
     boost: safeNum(r[`slot${i}_boost`]),
   };
 }
 
 function renderBestLineups() {
-  bestLineupsList.innerHTML = "";
+  el.bestLineupsList.innerHTML = "";
 
   const rows = Array.isArray(bestLineups) ? bestLineups.slice() : [];
   const top10 = rows
     .slice()
-    .sort((a, b) => safeNum(a.rank) - safeNum(b.rank))  // rank 1..10
+    .sort((a, b) => safeNum(a.rank) - safeNum(b.rank))
     .slice(0, 10);
 
   if (!top10.length) {
-    bestLineupsList.innerHTML = `
+    el.bestLineupsList.innerHTML = `
       <div class="p-4 rounded-xl border border-white/10 bg-white/5">
         <div class="font-semibold">No lineups found</div>
-        <div class="text-xs opacity-70 mt-1">Make sure your web app returns the NHL_BEST_LINEUPS sheet rows.</div>
+        <div class="text-xs opacity-70 mt-1">
+          Your fetch worked but returned 0 rows as an array.
+          If you expected data, the backend probably isn’t returning NHL_BEST_LINEUPS for sheet=...
+        </div>
       </div>
     `;
     return;
@@ -628,8 +717,6 @@ function renderBestLineups() {
 
     const slots = [1,2,3,4,5].map(i => slotObj(r, i));
 
-    // "Lineup consisting of each player" + (objective, expected, sd, synergy)
-    // We'll show a nice per-slot table too (mult, team, mu, boost)
     const playersInline = slots.map(s => `
       <span class="chip">
         <span class="chip-name">${s.player}${s.team ? ` • ${s.team}` : ""}</span>
@@ -647,7 +734,7 @@ function renderBestLineups() {
       </tr>
     `).join("");
 
-    bestLineupsList.insertAdjacentHTML("beforeend", `
+    el.bestLineupsList.insertAdjacentHTML("beforeend", `
       <div class="team-card hover-row">
         <div class="flex items-center justify-between gap-3 flex-wrap">
           <div class="flex items-center gap-3">
@@ -699,7 +786,20 @@ function renderBestLineups() {
   });
 }
 
-playerSearch.addEventListener("input", renderTable);
+/* ================= EVENTS ================= */
+el.homeBtn.addEventListener("click", goHome);
+
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-lg][data-md]");
+  if (!btn) return;
+  const lg = btn.getAttribute("data-lg");
+  const md = btn.getAttribute("data-md");
+  loadLeague(lg, md);
+});
+
+el.playerSearch.addEventListener("input", renderTable);
+
+/* ================= START ================= */
 goHome();
 </script>
 
@@ -860,7 +960,6 @@ goHome();
   50%{ transform: scale(1.18); opacity: 1; }
 }
 
-/* Sortable header button */
 .th-btn{
   width: 100%;
   display:flex;
@@ -873,7 +972,6 @@ goHome();
 .th-btn:hover{ opacity: 1; }
 .th-arrow{ font-size: .9rem; opacity: .85; }
 
-/* Card styling */
 .team-card{
   border-radius: 1rem;
   border: 1px solid rgba(255,255,255,.10);
